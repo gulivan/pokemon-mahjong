@@ -9,6 +9,6 @@ COPY game.js /usr/share/nginx/html/
 COPY characters/ /usr/share/nginx/html/characters/
 
 # Expose port 80
-EXPOSE 80
+EXPOSE 7070
 
 # Nginx will start automatically, no need for CMD

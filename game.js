@@ -148,198 +148,78 @@ function drawBoard() {
 }
 
 function findPath(x1, y1, x2, y2) {
-    console.log(`Finding path from (${x1},${y1}) to (${x2},${y2})`);
-
     // Check if cards are adjacent
     const isAdjacent = (
         (Math.abs(x1 - x2) === 1 && y1 === y2) || // Horizontally adjacent
         (Math.abs(y1 - y2) === 1 && x1 === x2)    // Vertically adjacent
     );
-
     if (isAdjacent) {
         return [{x: x1, y: y1}, {x: x2, y: y2}];
     }
 
-    // Direct path check
-    if (x1 === x2 || y1 === y2) {
-        console.log('Checking direct path...');
-        if (hasDirectPath(x1, y1, x2, y2)) {
-            console.log('Direct path found!');
-            return [{x: x1, y: y1}, {x: x2, y: y2}];
+    const queue = [{
+        x: x1,
+        y: y1,
+        lastDir: -1,
+        dirChanges: 0,
+        path: []
+    }];
+
+    // Track visited cells to avoid cycles
+    const visited = new Set();
+
+    // Possible directions: up, right, down, left
+    const directions = [
+        {dx: 0, dy: -1},
+        {dx: 1, dy: 0},
+        {dx: 0, dy: 1},
+        {dx: -1, dy: 0}
+    ];
+
+    while (queue.length > 0) {
+        const {x, y, lastDir, dirChanges, path} = queue.shift();
+        const currentPath = [...path, {x, y}];
+        const key = `${x},${y},${lastDir},${dirChanges}`;
+
+        if (visited.has(key)) continue;
+        visited.add(key);
+
+        // If we reached the target with valid number of direction changes
+        if (x === x2 && y === y2 && dirChanges <= 2) {
+            return currentPath;
         }
-    }
 
-    // One corner path check
-    console.log('Checking one corner paths...');
-    const oneCornerPath = findOneCornerPath(x1, y1, x2, y2);
-    if (oneCornerPath) {
-        console.log('One corner path found!');
-        return oneCornerPath;
-    }
+        // Try all directions
+        for (let dirIdx = 0; dirIdx < directions.length; dirIdx++) {
+            const {dx, dy} = directions[dirIdx];
+            const newX = x + dx;
+            const newY = y + dy;
 
-    // Two corner path check
-    console.log('Checking two corner paths...');
-    
-    // Try vertical paths
-    for (let x = -1; x <= COLS; x++) {
-        if (x === x1 || x === x2) continue;
-        console.log(`Trying vertical path through x=${x}`);
-        
-        const path = checkVerticalTwoCornerPath(x1, y1, x2, y2, x);
-        if (path) {
-            console.log('Found vertical two-corner path!');
-            return path;
-        }
-    }
+            // Skip if out of bounds
+            if (newX < -1 || newX > COLS || newY < -1 || newY > ROWS) continue;
 
-    // Try horizontal paths
-    for (let y = -1; y <= ROWS; y++) {
-        if (y === y1 || y === y2) continue;
-        console.log(`Trying horizontal path through y=${y}`);
-        
-        const path = checkHorizontalTwoCornerPath(x1, y1, x2, y2, y);
-        if (path) {
-            console.log('Found horizontal two-corner path!');
-            return path;
-        }
-    }
+            // Calculate new direction changes
+            const newDirChanges = dirChanges + (lastDir !== -1 && lastDir !== dirIdx ? 1 : 0);
+            if (newDirChanges > 2) continue;
 
-    console.log('No path found');
-    return null;  // Explicitly return null if no path is found
-}
+            // Check if the new position is valid (either empty, target card, or outside board)
+            const isOutside = newX < 0 || newX >= COLS || newY < 0 || newY >= ROWS;
+            const isEmpty = !isOutside && board[newY][newX] === null;
+            const isTarget = newX === x2 && newY === y2;
 
-function checkVerticalTwoCornerPath(x1, y1, x2, y2, x) {
-    if (hasDirectPath(x1, y1, x, y1) && 
-        hasDirectPath(x, y1, x, y2) && 
-        hasDirectPath(x, y2, x2, y2)) {
-        return [{x: x1, y: y1}, {x: x, y: y1}, {x: x, y: y2}, {x: x2, y: y2}];
-    }
-    return null;
-}
-
-function checkHorizontalTwoCornerPath(x1, y1, x2, y2, y) {
-    if (hasDirectPath(x1, y1, x1, y) && 
-        hasDirectPath(x1, y, x2, y) && 
-        hasDirectPath(x2, y, x2, y2)) {
-        return [{x: x1, y: y1}, {x: x1, y: y}, {x: x2, y: y}, {x: x2, y: y2}];
-    }
-    return null;
-}
-
-function hasDirectPath(x1, y1, x2, y2) {
-    console.log(`Checking direct path segment (${x1},${y1}) to (${x2},${y2})`);
-    
-    // Only allow edge paths when at least one coordinate is actually outside the board
-    const isEdgePath = (x1 < 0 || x1 >= COLS || x2 < 0 || x2 >= COLS || 
-                       y1 < 0 || y1 >= ROWS || y2 < 0 || y2 >= ROWS);
-    
-    // If it's not an edge path, we need to check for obstacles
-    if (!isEdgePath) {
-        // Check if either endpoint is blocked (except for the selected cards themselves)
-        const isEndpoint1 = (x1 === selectedCards[0]?.x && y1 === selectedCards[0]?.y);
-        const isEndpoint2 = (selectedCards[1] && x2 === selectedCards[1]?.x && y2 === selectedCards[1]?.y);
-
-        // If a position is not an endpoint and has a card, the path is blocked
-        if (!isEndpoint1 && board[y1][x1] !== null) return false;
-        if (!isEndpoint2 && board[y2][x2] !== null) return false;
-
-        if (x1 === x2) {  // Vertical path
-            const minY = Math.min(y1, y2);
-            const maxY = Math.max(y1, y2);
-            for (let y = minY; y <= maxY; y++) {
-                if (board[y][x1] !== null && 
-                    !(y === y1 && x1 === selectedCards[0]?.x && y === selectedCards[0]?.y) && 
-                    !(y === y2 && x1 === selectedCards[1]?.x && y === selectedCards[1]?.y)) {
-                    console.log(`Blocked at y=${y}`);
-                    return false;
-                }
-            }
-            console.log('Vertical path segment is clear');
-            return true;
-        } else if (y1 === y2) {  // Horizontal path
-            const minX = Math.min(x1, x2);
-            const maxX = Math.max(x1, x2);
-            for (let x = minX; x <= maxX; x++) {
-                if (board[y1][x] !== null && 
-                    !(x === x1 && y1 === selectedCards[0]?.y && x === selectedCards[0]?.x) && 
-                    !(x === x2 && y1 === selectedCards[1]?.y && x === selectedCards[1]?.x)) {
-                    console.log(`Blocked at x=${x}`);
-                    return false;
-                }
-            }
-            console.log('Horizontal path segment is clear');
-            return true;
-        }
-        return false;
-    }
-    
-    // For edge paths, we only need to check the part that's on the board
-    if (x1 === x2) {  // Vertical edge path
-        const minY = Math.max(0, Math.min(y1, y2));
-        const maxY = Math.min(ROWS - 1, Math.max(y1, y2));
-        for (let y = minY; y <= maxY; y++) {
-            if (x1 >= 0 && x1 < COLS && board[y][x1] !== null && y !== y1 && y !== y2) {
-                console.log(`Edge path blocked at y=${y}`);
-                return false;
-            }
-        }
-    } else if (y1 === y2) {  // Horizontal edge path
-        const minX = Math.max(0, Math.min(x1, x2));
-        const maxX = Math.min(COLS - 1, Math.max(x1, x2));
-        for (let x = minX; x <= maxX; x++) {
-            if (y1 >= 0 && y1 < ROWS && board[y1][x] !== null && x !== x1 && x !== x2) {
-                console.log(`Edge path blocked at x=${x}`);
-                return false;
+            if (isOutside || isEmpty || isTarget) {
+                queue.push({
+                    x: newX,
+                    y: newY,
+                    lastDir: dirIdx,
+                    dirChanges: newDirChanges,
+                    path: currentPath
+                });
             }
         }
     }
-    
-    console.log('Edge path is clear');
-    return true;
-}
 
-function findOneCornerPath(x1, y1, x2, y2) {
-    // Try all possible corner points
-    
-    // Try corner at (x2,y1)
-    if (hasDirectPath(x1, y1, x2, y1) && hasDirectPath(x2, y1, x2, y2)) {
-        return [{x: x1, y: y1}, {x: x2, y: y1}, {x: x2, y: y2}];
-    }
-
-    // Try corner at (x1,y2)
-    if (hasDirectPath(x1, y1, x1, y2) && hasDirectPath(x1, y2, x2, y2)) {
-        return [{x: x1, y: y1}, {x: x1, y: y2}, {x: x2, y: y2}];
-    }
-
-    // Try empty spaces around first card
-    if (hasDirectPath(x1, y1, x1 + 1, y1) && hasDirectPath(x1 + 1, y1, x2, y2)) {
-        return [{x: x1, y: y1}, {x: x1 + 1, y: y1}, {x: x2, y: y2}];
-    }
-    if (hasDirectPath(x1, y1, x1 - 1, y1) && hasDirectPath(x1 - 1, y1, x2, y2)) {
-        return [{x: x1, y: y1}, {x: x1 - 1, y: y1}, {x: x2, y: y2}];
-    }
-    if (hasDirectPath(x1, y1, x1, y1 + 1) && hasDirectPath(x1, y1 + 1, x2, y2)) {
-        return [{x: x1, y: y1}, {x: x1, y: y1 + 1}, {x: x2, y: y2}];
-    }
-    if (hasDirectPath(x1, y1, x1, y1 - 1) && hasDirectPath(x1, y1 - 1, x2, y2)) {
-        return [{x: x1, y: y1}, {x: x1, y: y1 - 1}, {x: x2, y: y2}];
-    }
-
-    // Try empty spaces around second card
-    if (hasDirectPath(x1, y1, x2 + 1, y2) && hasDirectPath(x2 + 1, y2, x2, y2)) {
-        return [{x: x1, y: y1}, {x: x2 + 1, y: y2}, {x: x2, y: y2}];
-    }
-    if (hasDirectPath(x1, y1, x2 - 1, y2) && hasDirectPath(x2 - 1, y2, x2, y2)) {
-        return [{x: x1, y: y1}, {x: x2 - 1, y: y2}, {x: x2, y: y2}];
-    }
-    if (hasDirectPath(x1, y1, x2, y2 + 1) && hasDirectPath(x2, y2 + 1, x2, y2)) {
-        return [{x: x1, y: y1}, {x: x2, y: y2 + 1}, {x: x2, y: y2}];
-    }
-    if (hasDirectPath(x1, y1, x2, y2 - 1) && hasDirectPath(x2, y2 - 1, x2, y2)) {
-        return [{x: x1, y: y1}, {x: x2, y: y2 - 1}, {x: x2, y: y2}];
-    }
-
-    return null;
+    return null;  // No valid path found
 }
 
 function drawPath(path) {

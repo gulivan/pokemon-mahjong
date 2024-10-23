@@ -42,6 +42,17 @@
             font-weight: bold;
             margin-top: 15px;
         }
+
+        /* Add flash animation */
+        @keyframes flash {
+            0% { filter: brightness(1); }
+            50% { filter: brightness(1.5); }
+            100% { filter: brightness(1); }
+        }
+
+        .timer-flash {
+            animation: flash 0.5s ease-out;
+        }
     </style>
 </head>
 <body>

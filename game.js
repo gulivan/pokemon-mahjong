@@ -23,6 +23,7 @@ const characters = generateCharacterPaths(28);
 const DIFFICULTY = {
     EASY: 8,    // Use 8 pairs
     MEDIUM: 16,  // Use 16 pairs
+    MEDIUM_PLUS: 24,  // Use 24 pairs
     HARD: 28    // Use all pairs
 };
 
@@ -310,8 +311,16 @@ function handleClick(event) {
                             board[first.y][first.x] = null;
                             board[y][x] = null;
                             score += 10;
-                            // Cap the time bonus at INITIAL_TIME
+                            
+                            // Add time bonus and flash animation
                             timeRemaining = Math.min(INITIAL_TIME, timeRemaining + TIME_BONUS);
+                            const timerBar = document.getElementById('timer-bar');
+                            timerBar.classList.add('timer-flash');
+                            // Remove the class after animation completes
+                            setTimeout(() => {
+                                timerBar.classList.remove('timer-flash');
+                            }, 500);
+                            
                             scoreElement.textContent = score;
                             selectedCards = [];
                             drawBoard();

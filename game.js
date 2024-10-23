@@ -324,7 +324,7 @@ function handleClick(event) {
                             scoreElement.textContent = score;
                             selectedCards = [];
                             drawBoard();
-                            console.log('Cards removed, score updated, time bonus added');
+                            console.log(`Cards removed, score updated, time bonus (${TIME_BONUS}) added: ${timeRemaining}`);
                             
                             if (checkGameComplete()) {
                                 clearInterval(timerInterval);

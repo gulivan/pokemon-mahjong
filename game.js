@@ -30,7 +30,7 @@ const DIFFICULTY = {
 const imageCache = new Map();
 
 const INITIAL_TIME = 90;
-const TIME_BONUS = 7;
+const TIME_BONUS = 6;
 let timeRemaining = INITIAL_TIME;
 let timerInterval;
 

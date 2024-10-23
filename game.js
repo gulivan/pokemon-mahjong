@@ -360,14 +360,18 @@ canvas.addEventListener('click', handleClick);
 // Add new function to update timer
 function updateTimer() {
     const timerBar = document.getElementById('timer-bar');
+    if (!timerBar) return;
+
     const percentage = (timeRemaining / INITIAL_TIME) * 100;
     timerBar.style.width = `${percentage}%`;
     
     if (timeRemaining <= 0) {
         clearInterval(timerInterval);
-        alert('Time\'s up! Game Over!');
-        if (confirm('Would you like to play again?')) {
-            resetGame();
+        if (board && board.length > 0) { // Check if board exists
+            alert('Time\'s up! Game Over!');
+            if (confirm('Would you like to play again?')) {
+                resetGame();
+            }
         }
     }
     timeRemaining--;
@@ -382,24 +386,49 @@ function resetGame() {
     initGame();
 }
 
+// Modify initGame function to return a promise
 async function initGame() {
-    generateRandomGradient();
-    await preloadImages();
-    initializeBoard();
-    drawBoard();
-    
-    // Reset and start timer
-    timeRemaining = INITIAL_TIME;
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = setInterval(updateTimer, 1000);
+    try {
+        // Clear any existing timer
+        if (timerInterval) {
+            clearInterval(timerInterval);
+        }
+
+        // Reset game state
+        timeRemaining = INITIAL_TIME;
+        score = 0;
+        if (scoreElement) {
+            scoreElement.textContent = score;
+        }
+
+        // Initialize game components
+        await generateRandomGradient();
+        await preloadImages();
+        initializeBoard();
+        drawBoard();
+
+        // Start timer only after everything is initialized
+        timerInterval = setInterval(() => {
+            if (board && board.length > 0) { // Check if board exists
+                updateTimer();
+            } else {
+                clearInterval(timerInterval); // Stop timer if board isn't ready
+            }
+        }, 1000);
+
+    } catch (error) {
+        console.error('Error initializing game:', error);
+    }
 }
 
-// Replace the direct calls at the bottom with:
-initGame().catch(console.error);
-
+// Modify checkGameComplete to include safety checks
 function checkGameComplete() {
-    for (let i = 0; i < ROWS; i++) {
-        for (let j = 0; j < COLS; j++) {
+    if (!board) return false;
+    
+    for (let i = 0; i < board.length; i++) {
+        if (!board[i]) continue; // Skip if row is undefined
+        
+        for (let j = 0; j < board[i].length; j++) {
             if (board[i][j] !== null) {
                 return false;
             }
@@ -407,3 +436,10 @@ function checkGameComplete() {
     }
     return true;
 }
+
+// Add window.onload to ensure DOM is ready
+window.onload = function() {
+    initGame().catch(error => {
+        console.error('Failed to initialize game:', error);
+    });
+};

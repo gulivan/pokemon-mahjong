@@ -362,10 +362,13 @@ function handleClick(event) {
                             if (checkGameComplete()) {
                                 clearInterval(timerInterval);
                                 setTimeout(() => {
-                                    alert(`Поздравляем! Вы победили! Результат: ${score}!`);
-                                    if (confirm('Хотите сыграть ещё?')) {
-                                        resetGame();
-                                    }
+                                    createConfetti(); // Add confetti before the alert
+                                    setTimeout(() => {
+                                        alert(`Поздравляем! Вы победили! Результат: ${score}!`);
+                                        if (confirm('Хотите сыграть ещё?')) {
+                                            resetGame();
+                                        }
+                                    }, 500);
                                 }, 800);
                             }
                         }, 700);
@@ -476,3 +479,37 @@ window.onload = function() {
         console.error('Failed to initialize game:', error);
     });
 };
+
+function createConfetti() {
+    const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+    const confettiCount = 200;
+    
+    for (let i = 0; i < confettiCount; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        
+        // Random properties for each piece
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const left = Math.random() * 100; // Random position across screen
+        const size = Math.random() * 10 + 5; // Random size between 5-15px
+        const duration = Math.random() * 3 + 2; // Random animation duration 2-5s
+        const delay = Math.random() * 0.5; // Random start delay
+        
+        confetti.style.cssText = `
+            position: fixed;
+            left: ${left}vw;
+            top: -20px;
+            width: ${size}px;
+            height: ${size}px;
+            background-color: ${color};
+            transform: rotate(${Math.random() * 360}deg);
+            animation: confetti ${duration}s ease-in ${delay}s forwards;
+            z-index: 1000;
+        `;
+        
+        document.body.appendChild(confetti);
+        
+        // Remove confetti after animation
+        setTimeout(() => confetti.remove(), (duration + delay) * 1000);
+    }
+}

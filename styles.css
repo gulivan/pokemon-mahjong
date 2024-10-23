@@ -77,3 +77,19 @@ canvas {
 .score-flash {
     animation: scoreFlash 0.5s ease-in-out;
 }
+
+@keyframes confetti {
+    0% {
+        transform: translateY(0) rotate(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+.confetti {
+    pointer-events: none;
+    border-radius: 50%;
+}

@@ -28,6 +28,25 @@ const DIFFICULTY = {
 
 const imageCache = new Map();
 
+function generateRandomGradient() {
+    // Function to generate a random color with low opacity
+    const randomColor = () => {
+        const r = Math.floor(Math.random() * 1024);
+        const g = Math.floor(Math.random() * 1024);
+        const b = Math.floor(Math.random() * 1024);
+        return `rgba(${r}, ${g}, ${b}, 0.1)`;
+    };
+
+    // Generate 6 random colors
+    const colors = Array.from({ length: 2 }, randomColor);
+    
+    // Apply to body
+    document.body.style.background = `linear-gradient(
+        0deg,
+        ${colors.join(',\n        ')}
+    )`;
+}
+
 async function preloadImages() {
     const loadImage = (src) => {
         return new Promise((resolve, reject) => {
@@ -313,6 +332,7 @@ function handleClick(event) {
 canvas.addEventListener('click', handleClick);
 
 async function initGame() {
+    generateRandomGradient();
     await preloadImages();
     initializeBoard();
     drawBoard();

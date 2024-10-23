@@ -329,8 +329,8 @@ function handleClick(event) {
                             if (checkGameComplete()) {
                                 clearInterval(timerInterval);
                                 setTimeout(() => {
-                                    alert(`Congratulations! You've completed the game with a score of ${score}!`);
-                                    if (confirm('Would you like to play again?')) {
+                                    alert(`Поздравляем! Вы победили! Результат: ${score}!`);
+                                    if (confirm('Хотите сыграть ещё?')) {
                                         resetGame();
                                     }
                                 }, 800);
@@ -368,8 +368,8 @@ function updateTimer() {
     if (timeRemaining <= 0) {
         clearInterval(timerInterval);
         if (board && board.length > 0) { // Check if board exists
-            alert('Time\'s up! Game Over!');
-            if (confirm('Would you like to play again?')) {
+            alert('Время вышло!');
+            if (confirm('Хотите сыграть ещё?')) {
                 resetGame();
             }
         }

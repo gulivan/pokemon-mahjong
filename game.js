@@ -29,8 +29,8 @@ const DIFFICULTY = {
 
 const imageCache = new Map();
 
-const INITIAL_TIME = 120;
-const TIME_BONUS = 7;
+const INITIAL_TIME = 90;
+const TIME_BONUS = 5;
 let timeRemaining = INITIAL_TIME;
 let timerInterval;
 
@@ -312,14 +312,47 @@ function handleClick(event) {
                             board[y][x] = null;
                             score += 10;
                             
-                            // Add time bonus and flash animation
-                            timeRemaining = Math.min(INITIAL_TIME, timeRemaining + TIME_BONUS);
-                            const timerBar = document.getElementById('timer-bar');
-                            timerBar.classList.add('timer-flash');
-                            // Remove the class after animation completes
-                            setTimeout(() => {
-                                timerBar.classList.remove('timer-flash');
-                            }, 300);
+                            // Create floating +10 text
+                            const scorePos = scoreElement.getBoundingClientRect();
+                            const floatingText = document.createElement('div');
+                            floatingText.textContent = '+10';
+                            floatingText.className = 'floating-score';
+                            floatingText.style.left = `${scorePos.left}px`;  // Align with left of score
+                            floatingText.style.top = `${scorePos.bottom + 5}px`;  // Position below score with small gap
+                            document.body.appendChild(floatingText);
+
+                            // Remove the element after animation
+                            setTimeout(() => floatingText.remove(), 1000);
+
+                            // Calculate potential new time
+                            const newTime = timeRemaining + TIME_BONUS;
+                            if (newTime > INITIAL_TIME) {
+                                // Add the excess time to score
+                                const extraTime = newTime - INITIAL_TIME;
+                                const timeBonus = extraTime * 2;
+                                score += timeBonus;
+                                
+                                // Create floating bonus score text
+                                const bonusText = document.createElement('div');
+                                bonusText.textContent = `+${timeBonus}`;
+                                bonusText.className = 'floating-score';
+                                bonusText.style.left = `${scorePos.left + 50}px`;  // Offset from the first number
+                                bonusText.style.top = `${scorePos.bottom + 5}px`;  // Same vertical position as first number
+                                document.body.appendChild(bonusText);
+                                
+                                // Remove the bonus element after animation
+                                setTimeout(() => bonusText.remove(), 1000);
+                                
+                                // Add animation to score
+                                scoreElement.classList.add('score-flash');
+                                setTimeout(() => {
+                                    scoreElement.classList.remove('score-flash');
+                                }, 500);
+                                
+                                timeRemaining = INITIAL_TIME;
+                            } else {
+                                timeRemaining = newTime;
+                            }
                             
                             scoreElement.textContent = score;
                             selectedCards = [];

@@ -49,24 +49,31 @@ canvas {
     animation: flash 0.5s ease-out;
 }
 
-.floating-score {
-    position: fixed;
-    color: #2ecc71;
-    font-weight: bold;
-    font-size: 1.2em;
-    pointer-events: none;
-    animation: floatAndFade 1s ease-out forwards;
-    z-index: 1000;
-}
-
-@keyframes floatAndFade {
+@keyframes floatRight {
     0% {
+        transform: translate(0, 0);
         opacity: 1;
-        transform: translateX(0) translateY(0);
     }
     100% {
+        transform: translate(100px, 20px);
         opacity: 0;
-        transform: translateX(50px) translateY(-20px);
     }
 }
 
+.floating-score {
+    position: absolute;
+    color: #4CAF50;
+    font-weight: bold;
+    animation: floatRight 1s ease-out forwards;
+    pointer-events: none;
+}
+
+@keyframes scoreFlash {
+    0% { color: inherit; }
+    50% { color: #4CAF50; transform: scale(1.2); }
+    100% { color: inherit; }
+}
+
+.score-flash {
+    animation: scoreFlash 0.5s ease-in-out;
+}

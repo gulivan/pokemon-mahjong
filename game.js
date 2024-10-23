@@ -29,7 +29,7 @@ const DIFFICULTY = {
 
 const imageCache = new Map();
 
-const INITIAL_TIME = 240;
+const INITIAL_TIME = 120;
 const TIME_BONUS = 10;
 let timeRemaining = INITIAL_TIME;
 let timerInterval;
@@ -319,7 +319,7 @@ function handleClick(event) {
                             // Remove the class after animation completes
                             setTimeout(() => {
                                 timerBar.classList.remove('timer-flash');
-                            }, 500);
+                            }, 300);
                             
                             scoreElement.textContent = score;
                             selectedCards = [];

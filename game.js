@@ -28,6 +28,11 @@ const DIFFICULTY = {
 
 const imageCache = new Map();
 
+const INITIAL_TIME = 240;
+const TIME_BONUS = 10;
+let timeRemaining = INITIAL_TIME;
+let timerInterval;
+
 function generateRandomGradient() {
     // Function to generate a random color with low opacity
     const randomColor = () => {
@@ -305,10 +310,22 @@ function handleClick(event) {
                             board[first.y][first.x] = null;
                             board[y][x] = null;
                             score += 10;
+                            // Cap the time bonus at INITIAL_TIME
+                            timeRemaining = Math.min(INITIAL_TIME, timeRemaining + TIME_BONUS);
                             scoreElement.textContent = score;
                             selectedCards = [];
                             drawBoard();
-                            console.log('Cards removed, score updated');
+                            console.log('Cards removed, score updated, time bonus added');
+                            
+                            if (checkGameComplete()) {
+                                clearInterval(timerInterval);
+                                setTimeout(() => {
+                                    alert(`Congratulations! You've completed the game with a score of ${score}!`);
+                                    if (confirm('Would you like to play again?')) {
+                                        resetGame();
+                                    }
+                                }, 800);
+                            }
                         }, 700);
                     } else {
                         console.log('No valid path found, resetting selection');
@@ -331,11 +348,41 @@ function handleClick(event) {
 
 canvas.addEventListener('click', handleClick);
 
+// Add new function to update timer
+function updateTimer() {
+    const timerBar = document.getElementById('timer-bar');
+    const percentage = (timeRemaining / INITIAL_TIME) * 100;
+    timerBar.style.width = `${percentage}%`;
+    
+    if (timeRemaining <= 0) {
+        clearInterval(timerInterval);
+        alert('Time\'s up! Game Over!');
+        if (confirm('Would you like to play again?')) {
+            resetGame();
+        }
+    }
+    timeRemaining--;
+}
+
+// Add reset game function
+function resetGame() {
+    score = 0;
+    scoreElement.textContent = score;
+    timeRemaining = INITIAL_TIME;
+    clearInterval(timerInterval);
+    initGame();
+}
+
 async function initGame() {
     generateRandomGradient();
     await preloadImages();
     initializeBoard();
     drawBoard();
+    
+    // Reset and start timer
+    timeRemaining = INITIAL_TIME;
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(updateTimer, 1000);
 }
 
 // Replace the direct calls at the bottom with:
@@ -350,17 +397,4 @@ function checkGameComplete() {
         }
     }
     return true;
-}
-
-// Add this to the handleClick function after removing matched cards:
-if (checkGameComplete()) {
-    setTimeout(() => {
-        alert(`Congratulations! You've completed the game with a score of ${score}!`);
-        if (confirm('Would you like to play again?')) {
-            score = 0;
-            scoreElement.textContent = score;
-            initializeBoard();
-            drawBoard();
-        }
-    }, 800);
 }

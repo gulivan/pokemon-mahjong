@@ -18,11 +18,39 @@
             border: 1px solid black;
             background: white;
         }
+
+        /* Add new timer styles */
+        #timer {
+            width: 700px;
+            height: 10px;
+            background: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        #timer-bar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, #ff4444, #4CAF50);
+            transition: width 1s linear;
+        }
+
+        /* Make score more prominent */
+        #score-container {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 15px;
+        }
     </style>
 </head>
 <body>
+    <!-- Add timer bar -->
+    <div id="timer">
+        <div id="timer-bar"></div>
+    </div>
     <canvas id="gameCanvas" width="700" height="400"></canvas>
-    <p>Score: <span id="score">0</span></p>
+    <div id="score-container">Score: <span id="score">0</span></div>
     <script src="game.js"></script>
 </body>
 </html>

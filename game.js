@@ -293,8 +293,18 @@ function drawPath(path) {
 
 function handleClick(event) {
     const rect = canvas.getBoundingClientRect();
-    const x = Math.floor((event.clientX - rect.left) / CARD_WIDTH);
-    const y = Math.floor((event.clientY - rect.top) / CARD_HEIGHT);
+    const scaleX = canvas.width / rect.width;    // Account for any scaling
+    const scaleY = canvas.height / rect.height;
+
+    // Calculate click position relative to canvas, accounting for scaling
+    const x = Math.floor(((event.clientX - rect.left) * scaleX) / (CARD_WIDTH * PIXEL_RATIO));
+    const y = Math.floor(((event.clientY - rect.top) * scaleY) / (CARD_HEIGHT * PIXEL_RATIO));
+
+    // Bounds checking
+    if (x < 0 || x >= COLS || y < 0 || y >= ROWS) {
+        console.log('Click outside board bounds');
+        return;
+    }
 
     console.log(`Clicked position: x=${x}, y=${y}`);
     console.log(`Card value at position:`, board[y][x]);

@@ -301,8 +301,8 @@ function handleClick(event) {
     if (event.type === 'touchstart' || event.type === 'touchend') {
         const touch = event.changedTouches[0];
         // Get touch coordinates relative to viewport
-        clientX = touch.clientX - window.pageXOffset;
-        clientY = touch.clientY - window.pageYOffset;
+        clientX = touch.clientX - window.scrollX;
+        clientY = touch.clientY - window.scrollY;
     } else {
         clientX = event.clientX;
         clientY = event.clientY;

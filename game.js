@@ -289,80 +289,76 @@ function drawPath(path) {
 
     ctx.save();
     
-    // First, draw extended background
-    ctx.fillStyle = 'rgba(100, 100, 100, 0.2)'; // Light gray for off-board area
-    ctx.fillRect(-CARD_WIDTH, -CARD_HEIGHT, 
-                (COLS + 2) * CARD_WIDTH, 
-                (ROWS + 2) * CARD_HEIGHT);
+    // Add semi-transparent overlay just for the board area
+    ctx.fillStyle = 'rgba(0, 0, 0, 00)';
+    ctx.fillRect(0, 0, COLS * CARD_WIDTH, ROWS * CARD_HEIGHT);
 
-    // Draw board outline
-    ctx.strokeStyle = '#666';
+    // Draw the path with glow effect
+    ctx.shadowColor = 'yellow';
+    ctx.shadowBlur = 15;
+    ctx.strokeStyle = '#feffdaff';
     ctx.lineWidth = 2;
-    ctx.strokeRect(0, 0, COLS * CARD_WIDTH, ROWS * CARD_HEIGHT);
-
-    // Add semi-transparent overlay
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-    ctx.fillRect(-CARD_WIDTH, -CARD_HEIGHT, 
-                (COLS + 2) * CARD_WIDTH, 
-                (ROWS + 2) * CARD_HEIGHT);
-
-    // Set up path drawing style
-    ctx.strokeStyle = '#00ff00';
-    ctx.lineWidth = 8;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    // Draw path
+    // Draw the main path
     ctx.beginPath();
-    let startX = path[0].x * CARD_WIDTH + CARD_WIDTH/2;
-    let startY = path[0].y * CARD_HEIGHT + CARD_HEIGHT/2;
-    ctx.moveTo(startX, startY);
 
-    // Draw each segment
+    // Helper function to handle off-board coordinates
+    const getVisibleCoord = (point) => {
+        const x = point.x * CARD_WIDTH + CARD_WIDTH/2;
+        const y = point.y * CARD_HEIGHT + CARD_HEIGHT/2;
+        
+        // If point is off-board, clamp it to board edge
+        return {
+            x: Math.max(CARD_WIDTH/2, Math.min(x, (COLS - 0.5) * CARD_WIDTH)),
+            y: Math.max(CARD_HEIGHT/2, Math.min(y, (ROWS - 0.5) * CARD_HEIGHT))
+        };
+    };
+
+    // Start path
+    const start = getVisibleCoord(path[0]);
+    ctx.moveTo(start.x, start.y);
+
+    // Draw path segments with arrows for off-board sections
     for (let i = 1; i < path.length; i++) {
-        let x = path[i].x * CARD_WIDTH + CARD_WIDTH/2;
-        let y = path[i].y * CARD_HEIGHT + CARD_HEIGHT/2;
-        ctx.lineTo(x, y);
+        const prev = path[i-1];
+        const curr = path[i];
+        const visiblePoint = getVisibleCoord(curr);
+        
+        ctx.lineTo(visiblePoint.x, visiblePoint.y);
+
+        // If point is off-board, draw an arrow
+        if (curr.x < 0 || curr.x >= COLS || curr.y < 0 || curr.y >= ROWS) {
+            ctx.save();
+            ctx.fillStyle = '#ffffff';
+            ctx.translate(visiblePoint.x, visiblePoint.y);
+            
+            // Calculate arrow rotation based on direction
+            const angle = Math.atan2(curr.y - prev.y, curr.x - prev.x);
+            ctx.rotate(angle);
+            
+            // Draw arrow
+            ctx.beginPath();
+            ctx.moveTo(-10, -10);
+            ctx.lineTo(10, 0);
+            ctx.lineTo(-10, 10);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.restore();
+        }
     }
     ctx.stroke();
 
     // Draw points
     path.forEach((point, i) => {
-        let x = point.x * CARD_WIDTH + CARD_WIDTH/2;
-        let y = point.y * CARD_HEIGHT + CARD_HEIGHT/2;
-        
-        // Draw connection point
+        const visiblePoint = getVisibleCoord(point);
         ctx.beginPath();
-        ctx.fillStyle = i === 0 ? '#ff0000' : 
-                       i === path.length - 1 ? '#0000ff' : '#ffff00';
-        ctx.arc(x, y, 8, 0, Math.PI * 2);
+        ctx.fillStyle = i === 0 ? '#73ED77FF' : 
+                       i === path.length - 1 ? '#73ED77FF' : '#ffff00';
+        ctx.arc(visiblePoint.x, visiblePoint.y, 4, 0, Math.PI * 2);
         ctx.fill();
-
-        // If point is off-board, draw indicator
-        if (point.x < 0 || point.x >= COLS || point.y < 0 || point.y >= ROWS) {
-            ctx.beginPath();
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 3;
-            ctx.setLineDash([5, 5]);
-            
-            // Draw larger indicator box
-            const boxSize = CARD_WIDTH * 0.8;
-            ctx.strokeRect(
-                x - boxSize/2,
-                y - boxSize/2,
-                boxSize,
-                boxSize
-            );
-            
-            // Add direction arrow or indicator
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '20px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('↔', x, y);
-            
-            ctx.setLineDash([]);
-        }
     });
 
     ctx.restore();

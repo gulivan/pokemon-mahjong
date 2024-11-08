@@ -191,7 +191,7 @@ function drawBoard() {
     });
 }
 
-function findPath(x1, y1, x2, y2) {
+async function findPath(x1, y1, x2, y2) {
     // Check if cards are adjacent
     const isAdjacent = (
         (Math.abs(x1 - x2) === 1 && y1 === y2) || // Horizontally adjacent
@@ -209,16 +209,31 @@ function findPath(x1, y1, x2, y2) {
         path: []
     }];
 
-    // Track visited cells to avoid cycles
     const visited = new Set();
-
-    // Possible directions: up, right, down, left
     const directions = [
         {dx: 0, dy: -1},
         {dx: 1, dy: 0},
         {dx: 0, dy: 1},
         {dx: -1, dy: 0}
     ];
+
+    // Function to visualize current exploration
+    const visualizeExploration = (currentPos, visited) => {
+        ctx.save();
+        
+        // Draw visited cells
+        visited.forEach(key => {
+            const [x, y] = key.split(',');
+            ctx.fillStyle = 'rgba(255, 165, 0, 0.2)'; // Semi-transparent orange
+            ctx.fillRect(x * CARD_WIDTH, y * CARD_HEIGHT, CARD_WIDTH, CARD_HEIGHT);
+        });
+
+        // Draw current position
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.4)'; // Semi-transparent red
+        ctx.fillRect(currentPos.x * CARD_WIDTH, currentPos.y * CARD_HEIGHT, CARD_WIDTH, CARD_HEIGHT);
+
+        ctx.restore();
+    };
 
     while (queue.length > 0) {
         const {x, y, lastDir, dirChanges, path} = queue.shift();
@@ -240,7 +255,7 @@ function findPath(x1, y1, x2, y2) {
             const newY = y + dy;
 
             // Skip if out of bounds
-            if (newX < -1 || newX > COLS || newY < -1 || newY > ROWS) continue;
+            if (newX < -2 || newX > COLS + 1 || newY < -2 || newY > ROWS + 1) continue;
 
             // Calculate new direction changes
             const newDirChanges = dirChanges + (lastDir !== -1 && lastDir !== dirIdx ? 1 : 0);
@@ -261,37 +276,99 @@ function findPath(x1, y1, x2, y2) {
                 });
             }
         }
+
+        // Visualize current exploration
+        visualizeExploration({x, y}, visited);
     }
 
     return null;  // No valid path found
 }
 
 function drawPath(path) {
-    console.log("Drawing path:", path);
+    if (!path || path.length < 2) return;
+
     ctx.save();
     
-    // Draw lines
+    // First, draw extended background
+    ctx.fillStyle = 'rgba(100, 100, 100, 0.2)'; // Light gray for off-board area
+    ctx.fillRect(-CARD_WIDTH, -CARD_HEIGHT, 
+                (COLS + 2) * CARD_WIDTH, 
+                (ROWS + 2) * CARD_HEIGHT);
+
+    // Draw board outline
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, COLS * CARD_WIDTH, ROWS * CARD_HEIGHT);
+
+    // Add semi-transparent overlay
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+    ctx.fillRect(-CARD_WIDTH, -CARD_HEIGHT, 
+                (COLS + 2) * CARD_WIDTH, 
+                (ROWS + 2) * CARD_HEIGHT);
+
+    // Set up path drawing style
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Draw path
     ctx.beginPath();
-    ctx.moveTo(path[0].x * CARD_WIDTH + CARD_WIDTH / 2, path[0].y * CARD_HEIGHT + CARD_HEIGHT / 2);
+    let startX = path[0].x * CARD_WIDTH + CARD_WIDTH/2;
+    let startY = path[0].y * CARD_HEIGHT + CARD_HEIGHT/2;
+    ctx.moveTo(startX, startY);
+
+    // Draw each segment
     for (let i = 1; i < path.length; i++) {
-        ctx.lineTo(path[i].x * CARD_WIDTH + CARD_WIDTH / 2, path[i].y * CARD_HEIGHT + CARD_HEIGHT / 2);
+        let x = path[i].x * CARD_WIDTH + CARD_WIDTH/2;
+        let y = path[i].y * CARD_HEIGHT + CARD_HEIGHT/2;
+        ctx.lineTo(x, y);
     }
-    ctx.strokeStyle = 'red';
-    ctx.lineWidth = 5;
     ctx.stroke();
-    
-    // Draw circles at each point
-    ctx.fillStyle = 'blue';
-    for (let point of path) {
+
+    // Draw points
+    path.forEach((point, i) => {
+        let x = point.x * CARD_WIDTH + CARD_WIDTH/2;
+        let y = point.y * CARD_HEIGHT + CARD_HEIGHT/2;
+        
+        // Draw connection point
         ctx.beginPath();
-        ctx.arc(point.x * CARD_WIDTH + CARD_WIDTH / 2, point.y * CARD_HEIGHT + CARD_HEIGHT / 2, 10, 0, 2 * Math.PI);
+        ctx.fillStyle = i === 0 ? '#ff0000' : 
+                       i === path.length - 1 ? '#0000ff' : '#ffff00';
+        ctx.arc(x, y, 8, 0, Math.PI * 2);
         ctx.fill();
-    }
-    
+
+        // If point is off-board, draw indicator
+        if (point.x < 0 || point.x >= COLS || point.y < 0 || point.y >= ROWS) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([5, 5]);
+            
+            // Draw larger indicator box
+            const boxSize = CARD_WIDTH * 0.8;
+            ctx.strokeRect(
+                x - boxSize/2,
+                y - boxSize/2,
+                boxSize,
+                boxSize
+            );
+            
+            // Add direction arrow or indicator
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('↔', x, y);
+            
+            ctx.setLineDash([]);
+        }
+    });
+
     ctx.restore();
 }
 
-function handleClick(event) {
+async function handleClick(event) {
     event.preventDefault();
     
     const rect = canvas.getBoundingClientRect();
@@ -300,9 +377,8 @@ function handleClick(event) {
     // Handle touch events
     if (event.type === 'touchstart' || event.type === 'touchend') {
         const touch = event.changedTouches[0];
-        // Get touch coordinates relative to viewport
-        clientX = touch.clientX - window.scrollX;
-        clientY = touch.clientY - window.scrollY;
+        clientX = touch.clientX - window.pageXOffset;
+        clientY = touch.clientY - window.pageYOffset;
     } else {
         clientX = event.clientX;
         clientY = event.clientY;
@@ -316,135 +392,54 @@ function handleClick(event) {
     const x = Math.floor((relativeX / rect.width) * COLS);
     const y = Math.floor((relativeY / rect.height) * ROWS);
 
-    // Debug logging
-    console.log('Touch/Click Details:', {
-        clientX,
-        clientY,
-        rectLeft: rect.left,
-        rectTop: rect.top,
-        relativeX,
-        relativeY,
-        calculatedX: x,
-        calculatedY: y
-    });
-
     // Bounds checking
     if (x < 0 || x >= COLS || y < 0 || y >= ROWS) {
         console.log('Click outside board bounds');
         return;
     }
 
-    console.log(`Clicked position: x=${x}, y=${y}`);
-    console.log(`Card value at position:`, board[y][x]);
-    console.log(`Current selected cards:`, selectedCards);
-
     if (board[y][x]) {
         if (selectedCards.length === 1 && x === selectedCards[0].x && y === selectedCards[0].y) {
-            console.log('Deselecting the same card');
             selectedCards = [];
-        } else {
-            if (selectedCards.length === 1) {
-                console.log('Attempting to match with first selected card:', selectedCards[0]);
-                const first = selectedCards[0];
-                
-                console.log('Checking if cards match:', {
-                    firstCard: board[first.y][first.x],
-                    secondCard: board[y][x]
-                });
-
-                if (board[first.y][first.x] === board[y][x]) {
-                    console.log('Cards have matching values, checking for valid path...');
-                    const path = findPath(first.x, first.y, x, y);
-                    console.log('Path found:', path);
-
+            drawBoard();
+        } else if (selectedCards.length === 1) {
+            const first = selectedCards[0];
+            
+            if (board[first.y][first.x] === board[y][x]) {
+                try {
+                    const path = await findPath(first.x, first.y, x, y);
+                    
                     if (path) {
-                        console.log('Valid path found! Adding second card');
                         selectedCards.push({x, y});
                         drawBoard();
-                        drawPath(path);
+                        drawPath(path);  // Draw path immediately
                         
-                        console.log('Setting timeout to remove matched cards');
-                        setTimeout(() => {
-                            board[first.y][first.x] = null;
-                            board[y][x] = null;
-                            score += 10;
-                            
-                            // Create floating +10 text
-                            const scorePos = scoreElement.getBoundingClientRect();
-                            const floatingText = document.createElement('div');
-                            floatingText.textContent = '+10';
-                            floatingText.className = 'floating-score';
-                            floatingText.style.left = `${scorePos.left}px`;  // Align with left of score
-                            floatingText.style.top = `${scorePos.bottom + 5}px`;  // Position below score with small gap
-                            document.body.appendChild(floatingText);
-
-                            // Remove the element after animation
-                            setTimeout(() => floatingText.remove(), 1000);
-
-                            // Calculate potential new time
-                            const newTime = timeRemaining + TIME_BONUS;
-                            if (newTime > INITIAL_TIME) {
-                                // Add the excess time to score
-                                const extraTime = newTime - INITIAL_TIME;
-                                const timeBonus = extraTime * 2;
-                                score += timeBonus;
-                                
-                                // Create floating bonus score text
-                                const bonusText = document.createElement('div');
-                                bonusText.textContent = `+${timeBonus}`;
-                                bonusText.className = 'floating-score';
-                                bonusText.style.left = `${scorePos.left + 50}px`;  // Offset from the first number
-                                bonusText.style.top = `${scorePos.bottom + 5}px`;  // Same vertical position as first number
-                                document.body.appendChild(bonusText);
-                                
-                                // Remove the bonus element after animation
-                                setTimeout(() => bonusText.remove(), 1000);
-                                
-                                // Add animation to score
-                                scoreElement.classList.add('score-flash');
-                                setTimeout(() => {
-                                    scoreElement.classList.remove('score-flash');
-                                }, 500);
-                                
-                                timeRemaining = INITIAL_TIME;
-                            } else {
-                                timeRemaining = newTime;
-                            }
-                            
-                            scoreElement.textContent = score;
-                            selectedCards = [];
-                            drawBoard();
-                            console.log(`Cards removed, score updated, time bonus (${TIME_BONUS}) added: ${timeRemaining}`);
-                            
-                            if (checkGameComplete()) {
-                                clearInterval(timerInterval);
-                                setTimeout(() => {
-                                    createConfetti(); // Add confetti before the alert
-                                    setTimeout(() => {
-                                        alert(`Поздравляем! Вы победили! Результат: ${score}!`);
-                                        if (confirm('Хотите сыграть ещё?')) {
-                                            resetGame();
-                                        }
-                                    }, 500);
-                                }, 800);
-                            }
-                        }, 700);
-                    } else {
-                        console.log('No valid path found, resetting selection');
+                        // Wait before clearing the cards
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        
+                        board[first.y][first.x] = null;
+                        board[y][x] = null;
+                        score += 10;
+                        scoreElement.textContent = score;
                         selectedCards = [];
+                        drawBoard();
+                    } else {
+                        selectedCards = [];
+                        drawBoard();
                     }
-                } else {
-                    console.log('Cards do not match, resetting selection');
+                } catch (error) {
+                    console.error('Path finding error:', error);
                     selectedCards = [];
+                    drawBoard();
                 }
             } else {
-                console.log('Selecting first card');
-                selectedCards.push({x, y});
+                selectedCards = [];
+                drawBoard();
             }
+        } else {
+            selectedCards.push({x, y});
+            drawBoard();
         }
-        drawBoard();
-    } else {
-        console.log('Clicked on empty position');
     }
 }
 

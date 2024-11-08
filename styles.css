@@ -1,0 +1,110 @@
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    min-width: 900px;
+    padding: 0;
+    transform: scale(1.2);
+    transform-origin: center center;
+}
+
+/* Add media query for mobile devices */
+@media screen and (max-width: 768px) {
+    body {
+        min-width: initial; /* Remove min-width constraint */
+        transform: none; /* Remove fixed scaling */
+        height: auto; /* Allow content to determine height */
+        padding: 20px 0; /* Add some padding for comfort */
+    }
+    
+    canvas {
+        max-width: 100%; /* Make canvas responsive */
+        height: auto;
+    }
+}
+
+canvas {
+    border: 1px solid black;
+    background: white;
+    max-width: 700px;
+}
+
+#timer {
+    width: 700px;
+    height: 10px;
+    background: #ddd;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+#timer-bar {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, #ff4444, #4CAF50);
+    transition: width 1s linear;
+}
+
+#score-container {
+    font-size: 24px;
+    font-weight: bold;
+    margin-top: 15px;
+}
+
+@keyframes flash {
+    0% { filter: brightness(1); }
+    50% { filter: brightness(1.5); }
+    100% { filter: brightness(1); }
+}
+
+.timer-flash {
+    animation: flash 0.5s ease-out;
+}
+
+@keyframes floatRight {
+    0% {
+        transform: translate(0, 0);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(100px, 20px);
+        opacity: 0;
+    }
+}
+
+.floating-score {
+    position: absolute;
+    color: #4CAF50;
+    font-weight: bold;
+    animation: floatRight 1s ease-out forwards;
+    pointer-events: none;
+}
+
+@keyframes scoreFlash {
+    0% { color: inherit; }
+    50% { color: #4CAF50; transform: scale(1.2); }
+    100% { color: inherit; }
+}
+
+.score-flash {
+    animation: scoreFlash 0.5s ease-in-out;
+}
+
+@keyframes confetti {
+    0% {
+        transform: translateY(0) rotate(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+.confetti {
+    pointer-events: none;
+    border-radius: 50%;
+}

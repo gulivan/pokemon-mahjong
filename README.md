@@ -3,8 +3,10 @@
 
 # How to play
 
-To play it, simply open `index.html` or head to:
+To play it, simply open `index.html` or use the web version:
+
 https://gulivan.github.io/pokemon-mahjong/
+
 
 ![Screen of the original game](docs/current_game_screenshot.jpg)
 

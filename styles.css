@@ -15,18 +15,39 @@ body {
 /* Add media query for mobile devices */
 @media screen and (max-width: 768px) {
     body {
-        min-width: initial; /* Remove min-width constraint */
-        transform: none; /* Remove fixed scaling */
-        height: auto; /* Allow content to determine height */
-        padding: 20px 10%; /* Add some padding for comfort */
-        overflow-x: auto; /* Enable horizontal scroll */
-        width: 120%; /* Make content wider than viewport */
-        margin-left: -10%; /* Offset the extra width */
+        min-width: initial;
+        transform: none;
+        height: 100vh;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
     }
     
     canvas {
-        max-width: 100%; /* Make canvas responsive */
-        height: auto;
+        position: relative;
+        width: 90vw !important;
+        height: auto !important;
+        max-width: none;
+        max-height: none;
+        left: auto;
+        transform: none;
+    }
+
+    #timer {
+        width: 90vw !important;
+        position: relative;
+        left: auto;
+        transform: none;
     }
 }
 

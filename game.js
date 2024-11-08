@@ -292,32 +292,41 @@ function drawPath(path) {
 }
 
 function handleClick(event) {
-    event.preventDefault(); // Prevent default touch/click behaviors
+    event.preventDefault();
     
     const rect = canvas.getBoundingClientRect();
     let clientX, clientY;
     
-    // Handle both touch and mouse events
+    // Handle touch events
     if (event.type === 'touchstart' || event.type === 'touchend') {
         const touch = event.changedTouches[0];
-        clientX = touch.clientX;
-        clientY = touch.clientY;
+        // Get touch coordinates relative to viewport
+        clientX = touch.clientX - window.pageXOffset;
+        clientY = touch.clientY - window.pageYOffset;
     } else {
         clientX = event.clientX;
         clientY = event.clientY;
     }
 
-    // Get the actual canvas size from CSS
-    const canvasWidth = rect.width;
-    const canvasHeight = rect.height;
-    
-    // Calculate the scaling factors
-    const scaleX = COLS * CARD_WIDTH / canvasWidth;
-    const scaleY = ROWS * CARD_HEIGHT / canvasHeight;
-    
-    // Calculate grid position
-    const x = Math.floor((clientX - rect.left) * scaleX);
-    const y = Math.floor((clientY - rect.top) * scaleY);
+    // Calculate relative position within canvas
+    const relativeX = clientX - rect.left;
+    const relativeY = clientY - rect.top;
+
+    // Calculate card position
+    const x = Math.floor((relativeX / rect.width) * COLS);
+    const y = Math.floor((relativeY / rect.height) * ROWS);
+
+    // Debug logging
+    console.log('Touch/Click Details:', {
+        clientX,
+        clientY,
+        rectLeft: rect.left,
+        rectTop: rect.top,
+        relativeX,
+        relativeY,
+        calculatedX: x,
+        calculatedY: y
+    });
 
     // Bounds checking
     if (x < 0 || x >= COLS || y < 0 || y >= ROWS) {
@@ -439,8 +448,9 @@ function handleClick(event) {
     }
 }
 
-// Remove old click listener and add both touch and click listeners
+// Update event listeners
 canvas.removeEventListener('click', handleClick);
+canvas.removeEventListener('touchstart', handleClick);
 canvas.addEventListener('touchstart', handleClick, { passive: false });
 canvas.addEventListener('click', handleClick);
 

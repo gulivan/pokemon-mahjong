@@ -292,13 +292,32 @@ function drawPath(path) {
 }
 
 function handleClick(event) {
+    event.preventDefault(); // Prevent default touch/click behaviors
+    
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;    // Account for any scaling
-    const scaleY = canvas.height / rect.height;
+    let clientX, clientY;
+    
+    // Handle both touch and mouse events
+    if (event.type === 'touchstart' || event.type === 'touchend') {
+        const touch = event.changedTouches[0];
+        clientX = touch.clientX;
+        clientY = touch.clientY;
+    } else {
+        clientX = event.clientX;
+        clientY = event.clientY;
+    }
 
-    // Calculate click position relative to canvas, accounting for scaling
-    const x = Math.floor(((event.clientX - rect.left) * scaleX) / (CARD_WIDTH * PIXEL_RATIO));
-    const y = Math.floor(((event.clientY - rect.top) * scaleY) / (CARD_HEIGHT * PIXEL_RATIO));
+    // Get the actual canvas size from CSS
+    const canvasWidth = rect.width;
+    const canvasHeight = rect.height;
+    
+    // Calculate the scaling factors
+    const scaleX = COLS * CARD_WIDTH / canvasWidth;
+    const scaleY = ROWS * CARD_HEIGHT / canvasHeight;
+    
+    // Calculate grid position
+    const x = Math.floor((clientX - rect.left) * scaleX);
+    const y = Math.floor((clientY - rect.top) * scaleY);
 
     // Bounds checking
     if (x < 0 || x >= COLS || y < 0 || y >= ROWS) {
@@ -420,6 +439,9 @@ function handleClick(event) {
     }
 }
 
+// Remove old click listener and add both touch and click listeners
+canvas.removeEventListener('click', handleClick);
+canvas.addEventListener('touchstart', handleClick, { passive: false });
 canvas.addEventListener('click', handleClick);
 
 // Add new function to update timer

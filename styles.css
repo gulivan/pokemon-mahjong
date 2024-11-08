@@ -5,10 +5,11 @@ body {
     justify-content: center;
     height: 100vh;
     margin: 0;
-    min-width: 900px;
+    min-width: 700px;
     padding: 0;
     transform: scale(1.2);
     transform-origin: center center;
+    overflow: hidden;
 }
 
 /* Add media query for mobile devices */
@@ -17,7 +18,10 @@ body {
         min-width: initial; /* Remove min-width constraint */
         transform: none; /* Remove fixed scaling */
         height: auto; /* Allow content to determine height */
-        padding: 20px 0; /* Add some padding for comfort */
+        padding: 20px 10%; /* Add some padding for comfort */
+        overflow-x: auto; /* Enable horizontal scroll */
+        width: 120%; /* Make content wider than viewport */
+        margin-left: -10%; /* Offset the extra width */
     }
     
     canvas {

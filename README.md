@@ -32,6 +32,6 @@ Pokemons are copyrighted so in this port some Midjourney generated animals were 
 - Add more difficulty options.
 - Add sound effects & music.
 - Add more levels: move all cards to left/right and so on.
-- Improve generation of board. Currently it may generate unsolvable board 😅
+- Improve the logic of board generation. Currently it could be unsolvable 😅
 - Add path animation
 - Improve smoothness of the game.

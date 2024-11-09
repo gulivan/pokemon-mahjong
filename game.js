@@ -428,9 +428,16 @@ async function handleClick(event) {
                                 timerBar.classList.add('timer-flash');
                             }
 
-                            score += 10;
+                            let pointsEarned = 10;
+                            score += pointsEarned;
+                            showFloatingScore(pointsEarned);
+
                             if (timeRemaining > INITIAL_TIME) {
-                                score += Math.floor(timeRemaining - INITIAL_TIME);
+                                const bonusPoints = Math.floor(timeRemaining - INITIAL_TIME);
+                                score += bonusPoints;
+                                if (bonusPoints > 0) {
+                                    setTimeout(() => showFloatingScore(bonusPoints), 200); // Slight delay for second animation
+                                }
                                 timeRemaining = INITIAL_TIME + 1;
                             }
                             scoreElement.textContent = score;
@@ -610,3 +617,20 @@ function createConfetti() {
 }
 
 let prevTimeRemaining = INITIAL_TIME;
+
+function showFloatingScore(points) {
+    const scoreContainer = document.getElementById('score-container');
+    const floatingText = document.createElement('div');
+    floatingText.className = 'floating-score';
+    floatingText.textContent = `+${points}`;
+    
+    // Position the floating text next to the score container
+    const rect = scoreContainer.getBoundingClientRect();
+    floatingText.style.left = `${rect.right + 10}px`;
+    floatingText.style.top = `${rect.top}px`;
+    
+    document.body.appendChild(floatingText);
+    
+    // Remove the element after animation completes
+    setTimeout(() => floatingText.remove(), 1500);
+}

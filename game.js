@@ -122,9 +122,13 @@ function initializeBoard() {
     let cardPairs = [];
     let currentIndex = 0;
     
+    // Get current difficulty setting
+    const difficulty = document.getElementById('difficulty').value;
+    const availableCharacters = characters.slice(0, DIFFICULTY[difficulty]);
+    
     // Keep adding pairs until we fill the board
     while (cardPairs.length < totalCells) {
-        const char = characters[currentIndex % characters.length];
+        const char = availableCharacters[currentIndex % availableCharacters.length];
         // Add pairs (2, 4, 6, or 8 times randomly)
         const pairCount = Math.floor(Math.random() * 4 + 1) * 2; // Random even number between 2 and 8
         
@@ -801,7 +805,8 @@ function saveSettings() {
         initialTime: INITIAL_TIME,
         timeBonus: TIME_BONUS,
         rows: ROWS,
-        cols: COLS
+        cols: COLS,
+        difficulty: document.getElementById('difficulty').value
     };
     localStorage.setItem('gameSettings', JSON.stringify(settings));
 }
@@ -814,6 +819,7 @@ function loadSettings() {
         TIME_BONUS = settings.timeBonus;
         ROWS = settings.rows;
         COLS = settings.cols;
+        document.getElementById('difficulty').value = settings.difficulty || 'MEDIUM';
     }
 }
 
@@ -822,7 +828,8 @@ const DEFAULT_SETTINGS = {
     initialTime: 90,
     timeBonus: 6,
     rows: 8,
-    cols: 14
+    cols: 14,
+    difficulty: 'MEDIUM'  // Add default difficulty
 };
 
 function restoreDefaultSettings() {
@@ -837,6 +844,7 @@ function restoreDefaultSettings() {
     document.getElementById('time-bonus').value = TIME_BONUS;
     document.getElementById('rows').value = ROWS;
     document.getElementById('cols').value = COLS;
+    document.getElementById('difficulty').value = DEFAULT_SETTINGS.difficulty;
     
     // Clear localStorage
     localStorage.removeItem('gameSettings');
@@ -958,3 +966,7 @@ function checkWinCondition() {
         }
     }
 }
+
+document.getElementById('difficulty').addEventListener('change', (e) => {
+    saveSettings();
+});

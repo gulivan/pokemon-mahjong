@@ -694,11 +694,24 @@ function initializeControlPanel() {
     document.getElementById('cols').value = COLS;
     
     // Restore defaults button
-    defaultsBtn.addEventListener('click', () => {
+    function handleDefaultsClick(e) {
+        // Prevent double execution
+        if (e.defaultsPrevented) return;
+        e.defaultsPrevented = true;
+        
+        console.log('Default button clicked'); // Debug log
         if (confirm('Вы уверены, что хотите восстановить настройки по умолчанию?')) {
             restoreDefaultSettings();
         }
-    });
+        
+        // Reset the flag after a short delay
+        setTimeout(() => {
+            e.defaultsPrevented = false;
+        }, 100);
+    }
+    
+    defaultsBtn.removeEventListener('click', handleDefaultsClick);
+    defaultsBtn.addEventListener('click', handleDefaultsClick);
     
     // Update settings and restart game
     restartBtn.addEventListener('click', () => {

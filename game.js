@@ -842,23 +842,23 @@ function restoreDefaultSettings() {
 // Update level configuration
 const LEVELS = {
     1: {
-        name: "Classic",
-        description: "Classic matching game",
+        name: "Классический",
+        description: "Классический режим",
         behavior: "default"
     },
     2: {
-        name: "Sliding Right",
-        description: "Cards slide right after matches",
+        name: "Сдвиг вправо",
+        description: "Карты перемещаются вправо после совпадений",
         behavior: "slideRight"
     },
     3: {
-        name: "Falling Down",
-        description: "Cards fall down after matches",
+        name: "Сдвиг вниз",
+        description: "Карты перемещаются вниз после совпадений",
         behavior: "slideDown"
     },
     4: {
-        name: "Sliding Left",
-        description: "Cards slide left after matches",
+        name: "Сдвиг влево",
+        description: "Карты перемещаются влево после совпадений",
         behavior: "slideLeft"
     }
 };

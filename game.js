@@ -7,6 +7,8 @@ const COLS = 14;
 const CARD_WIDTH = 50;  
 const CARD_HEIGHT = 50;
 const CHARACTER_COUNT = 26;
+const INITIAL_TIME = 90;
+const TIME_BONUS = 6;
 
 let board = [];
 let score = 0;
@@ -30,8 +32,7 @@ const DIFFICULTY = {
 
 const imageCache = new Map();
 
-const INITIAL_TIME = 90;
-const TIME_BONUS = 6;
+
 let timeRemaining = INITIAL_TIME;
 let timerInterval;
 
@@ -191,7 +192,7 @@ function drawBoard() {
     });
 }
 
-function findPath(x1, y1, x2, y2) {
+async function findPath(x1, y1, x2, y2) {
     // Check if cards are adjacent
     const isAdjacent = (
         (Math.abs(x1 - x2) === 1 && y1 === y2) || // Horizontally adjacent
@@ -209,16 +210,31 @@ function findPath(x1, y1, x2, y2) {
         path: []
     }];
 
-    // Track visited cells to avoid cycles
     const visited = new Set();
-
-    // Possible directions: up, right, down, left
     const directions = [
         {dx: 0, dy: -1},
         {dx: 1, dy: 0},
         {dx: 0, dy: 1},
         {dx: -1, dy: 0}
     ];
+
+    // Function to visualize current exploration
+    const visualizeExploration = (currentPos, visited) => {
+        ctx.save();
+        
+        // Draw visited cells
+        visited.forEach(key => {
+            const [x, y] = key.split(',');
+            ctx.fillStyle = 'rgba(255, 165, 0, 0.2)'; // Semi-transparent orange
+            ctx.fillRect(x * CARD_WIDTH, y * CARD_HEIGHT, CARD_WIDTH, CARD_HEIGHT);
+        });
+
+        // Draw current position
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.4)'; // Semi-transparent red
+        ctx.fillRect(currentPos.x * CARD_WIDTH, currentPos.y * CARD_HEIGHT, CARD_WIDTH, CARD_HEIGHT);
+
+        ctx.restore();
+    };
 
     while (queue.length > 0) {
         const {x, y, lastDir, dirChanges, path} = queue.shift();
@@ -240,7 +256,7 @@ function findPath(x1, y1, x2, y2) {
             const newY = y + dy;
 
             // Skip if out of bounds
-            if (newX < -1 || newX > COLS || newY < -1 || newY > ROWS) continue;
+            if (newX < -2 || newX > COLS + 1 || newY < -2 || newY > ROWS + 1) continue;
 
             // Calculate new direction changes
             const newDirChanges = dirChanges + (lastDir !== -1 && lastDir !== dirIdx ? 1 : 0);
@@ -261,37 +277,95 @@ function findPath(x1, y1, x2, y2) {
                 });
             }
         }
+
+        // Visualize current exploration
+        visualizeExploration({x, y}, visited);
     }
 
     return null;  // No valid path found
 }
 
 function drawPath(path) {
-    console.log("Drawing path:", path);
+    if (!path || path.length < 2) return;
+
     ctx.save();
     
-    // Draw lines
+    // Add semi-transparent overlay just for the board area
+    ctx.fillStyle = 'rgba(0, 0, 0, 00)';
+    ctx.fillRect(0, 0, COLS * CARD_WIDTH, ROWS * CARD_HEIGHT);
+
+    // Draw the path with glow effect
+    ctx.shadowColor = 'yellow';
+    ctx.shadowBlur = 15;
+    ctx.strokeStyle = '#feffdaff';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Draw the main path
     ctx.beginPath();
-    ctx.moveTo(path[0].x * CARD_WIDTH + CARD_WIDTH / 2, path[0].y * CARD_HEIGHT + CARD_HEIGHT / 2);
+
+    // Helper function to handle off-board coordinates
+    const getVisibleCoord = (point) => {
+        const x = point.x * CARD_WIDTH + CARD_WIDTH/2;
+        const y = point.y * CARD_HEIGHT + CARD_HEIGHT/2;
+        
+        // If point is off-board, clamp it to board edge
+        return {
+            x: Math.max(CARD_WIDTH/2, Math.min(x, (COLS - 0.5) * CARD_WIDTH)),
+            y: Math.max(CARD_HEIGHT/2, Math.min(y, (ROWS - 0.5) * CARD_HEIGHT))
+        };
+    };
+
+    // Start path
+    const start = getVisibleCoord(path[0]);
+    ctx.moveTo(start.x, start.y);
+
+    // Draw path segments with arrows for off-board sections
     for (let i = 1; i < path.length; i++) {
-        ctx.lineTo(path[i].x * CARD_WIDTH + CARD_WIDTH / 2, path[i].y * CARD_HEIGHT + CARD_HEIGHT / 2);
+        const prev = path[i-1];
+        const curr = path[i];
+        const visiblePoint = getVisibleCoord(curr);
+        
+        ctx.lineTo(visiblePoint.x, visiblePoint.y);
+
+        // If point is off-board, draw an arrow
+        if (curr.x < 0 || curr.x >= COLS || curr.y < 0 || curr.y >= ROWS) {
+            ctx.save();
+            ctx.fillStyle = '#ffffff';
+            ctx.translate(visiblePoint.x, visiblePoint.y);
+            
+            // Calculate arrow rotation based on direction
+            const angle = Math.atan2(curr.y - prev.y, curr.x - prev.x);
+            ctx.rotate(angle);
+            
+            // Draw arrow
+            ctx.beginPath();
+            ctx.moveTo(-10, -10);
+            ctx.lineTo(10, 0);
+            ctx.lineTo(-10, 10);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.restore();
+        }
     }
-    ctx.strokeStyle = 'red';
-    ctx.lineWidth = 5;
     ctx.stroke();
-    
-    // Draw circles at each point
-    ctx.fillStyle = 'blue';
-    for (let point of path) {
+
+    // Draw points
+    path.forEach((point, i) => {
+        const visiblePoint = getVisibleCoord(point);
         ctx.beginPath();
-        ctx.arc(point.x * CARD_WIDTH + CARD_WIDTH / 2, point.y * CARD_HEIGHT + CARD_HEIGHT / 2, 10, 0, 2 * Math.PI);
+        ctx.fillStyle = i === 0 ? '#73ED77FF' : 
+                       i === path.length - 1 ? '#73ED77FF' : '#ffff00';
+        ctx.arc(visiblePoint.x, visiblePoint.y, 4, 0, Math.PI * 2);
         ctx.fill();
-    }
-    
+    });
+
     ctx.restore();
 }
 
-function handleClick(event) {
+async function handleClick(event) {
     event.preventDefault();
     
     const rect = canvas.getBoundingClientRect();
@@ -300,7 +374,6 @@ function handleClick(event) {
     // Handle touch events
     if (event.type === 'touchstart' || event.type === 'touchend') {
         const touch = event.changedTouches[0];
-        // Get touch coordinates relative to viewport
         clientX = touch.clientX - window.scrollX;
         clientY = touch.clientY - window.scrollY;
     } else {
@@ -316,135 +389,91 @@ function handleClick(event) {
     const x = Math.floor((relativeX / rect.width) * COLS);
     const y = Math.floor((relativeY / rect.height) * ROWS);
 
-    // Debug logging
-    console.log('Touch/Click Details:', {
-        clientX,
-        clientY,
-        rectLeft: rect.left,
-        rectTop: rect.top,
-        relativeX,
-        relativeY,
-        calculatedX: x,
-        calculatedY: y
-    });
-
     // Bounds checking
     if (x < 0 || x >= COLS || y < 0 || y >= ROWS) {
         console.log('Click outside board bounds');
         return;
     }
 
-    console.log(`Clicked position: x=${x}, y=${y}`);
-    console.log(`Card value at position:`, board[y][x]);
-    console.log(`Current selected cards:`, selectedCards);
-
     if (board[y][x]) {
         if (selectedCards.length === 1 && x === selectedCards[0].x && y === selectedCards[0].y) {
-            console.log('Deselecting the same card');
             selectedCards = [];
-        } else {
-            if (selectedCards.length === 1) {
-                console.log('Attempting to match with first selected card:', selectedCards[0]);
-                const first = selectedCards[0];
-                
-                console.log('Checking if cards match:', {
-                    firstCard: board[first.y][first.x],
-                    secondCard: board[y][x]
-                });
-
-                if (board[first.y][first.x] === board[y][x]) {
-                    console.log('Cards have matching values, checking for valid path...');
-                    const path = findPath(first.x, first.y, x, y);
-                    console.log('Path found:', path);
-
+            drawBoard();
+        } else if (selectedCards.length === 1) {
+            const first = selectedCards[0];
+            
+            if (board[first.y][first.x] === board[y][x]) {
+                try {
+                    const path = await findPath(first.x, first.y, x, y);
+                    
                     if (path) {
-                        console.log('Valid path found! Adding second card');
                         selectedCards.push({x, y});
                         drawBoard();
                         drawPath(path);
                         
-                        console.log('Setting timeout to remove matched cards');
-                        setTimeout(() => {
+                        setTimeout(async () => {
                             board[first.y][first.x] = null;
                             board[y][x] = null;
-                            score += 10;
+
+                            // Update time and trigger flash
+                            const timerBar = document.getElementById('timer-bar');
+                            timeRemaining += TIME_BONUS;
                             
-                            // Create floating +10 text
-                            const scorePos = scoreElement.getBoundingClientRect();
-                            const floatingText = document.createElement('div');
-                            floatingText.textContent = '+10';
-                            floatingText.className = 'floating-score';
-                            floatingText.style.left = `${scorePos.left}px`;  // Align with left of score
-                            floatingText.style.top = `${scorePos.bottom + 5}px`;  // Position below score with small gap
-                            document.body.appendChild(floatingText);
-
-                            // Remove the element after animation
-                            setTimeout(() => floatingText.remove(), 1000);
-
-                            // Calculate potential new time
-                            const newTime = timeRemaining + TIME_BONUS;
-                            if (newTime > INITIAL_TIME) {
-                                // Add the excess time to score
-                                const extraTime = newTime - INITIAL_TIME;
-                                const timeBonus = extraTime * 2;
-                                score += timeBonus;
-                                
-                                // Create floating bonus score text
-                                const bonusText = document.createElement('div');
-                                bonusText.textContent = `+${timeBonus}`;
-                                bonusText.className = 'floating-score';
-                                bonusText.style.left = `${scorePos.left + 50}px`;  // Offset from the first number
-                                bonusText.style.top = `${scorePos.bottom + 5}px`;  // Same vertical position as first number
-                                document.body.appendChild(bonusText);
-                                
-                                // Remove the bonus element after animation
-                                setTimeout(() => bonusText.remove(), 1000);
-                                
-                                // Add animation to score
-                                scoreElement.classList.add('score-flash');
-                                setTimeout(() => {
-                                    scoreElement.classList.remove('score-flash');
-                                }, 500);
-                                
-                                timeRemaining = INITIAL_TIME;
-                            } else {
-                                timeRemaining = newTime;
+                            if (timerBar) {
+                                // Remove existing class to ensure animation can replay
+                                timerBar.classList.remove('timer-flash');
+                                // Force a reflow
+                                void timerBar.offsetWidth;
+                                // Add class back
+                                timerBar.classList.add('timer-flash');
                             }
-                            
+
+                            let pointsEarned = 10;
+                            score += pointsEarned;
+                            showFloatingScore(pointsEarned);
+
+                            if (timeRemaining > INITIAL_TIME) {
+                                const bonusPoints = Math.floor(timeRemaining - INITIAL_TIME);
+                                score += bonusPoints;
+                                if (bonusPoints > 0) {
+                                    setTimeout(() => showFloatingScore(bonusPoints), 200); // Slight delay for second animation
+                                }
+                                timeRemaining = INITIAL_TIME + 1;
+                            }
                             scoreElement.textContent = score;
-                            selectedCards = [];
                             drawBoard();
-                            console.log(`Cards removed, score updated, time bonus (${TIME_BONUS}) added: ${timeRemaining}`);
-                            
+
+                            // Check for win condition
                             if (checkGameComplete()) {
                                 clearInterval(timerInterval);
+                                createConfetti();
                                 setTimeout(() => {
-                                    createConfetti(); // Add confetti before the alert
-                                    setTimeout(() => {
-                                        alert(`Поздравляем! Вы победили! Результат: ${score}!`);
-                                        if (confirm('Хотите сыграть ещё?')) {
-                                            resetGame();
-                                        }
-                                    }, 500);
-                                }, 800);
+                                    alert(`Поздравляем! Вы победили!\nВаш счёт: ${score} очков`);
+                                    if (confirm('Хотите сыграть ещё раз?')) {
+                                        resetGame();
+                                    }
+                                }, 500); // Small delay to ensure confetti starts first
                             }
-                        }, 700);
-                    } else {
-                        console.log('No valid path found, resetting selection');
+                        }, 1000);
+                        
                         selectedCards = [];
+                    } else {
+                        selectedCards = [];
+                        drawBoard();
                     }
-                } else {
-                    console.log('Cards do not match, resetting selection');
+                } catch (error) {
+                    console.error('Path finding error:', error);
                     selectedCards = [];
+                    drawBoard();
                 }
             } else {
-                console.log('Selecting first card');
-                selectedCards.push({x, y});
+                selectedCards = [];
+                drawBoard();
             }
+        } else {
+            selectedCards.push({x, y});
+            drawBoard();
         }
-        drawBoard();
-    } else {
-        console.log('Clicked on empty position');
     }
 }
 
@@ -459,19 +488,31 @@ function updateTimer() {
     const timerBar = document.getElementById('timer-bar');
     if (!timerBar) return;
 
+    // Decrease time more smoothly (adjust time by frame)
+    timeRemaining -= 1/60; // Decrease by 1 second spread across 60 frames
+
+    // Update progress bar immediately
     const percentage = (timeRemaining / INITIAL_TIME) * 100;
     timerBar.style.width = `${percentage}%`;
     
+    // Flash only when time is added
+    if (timeRemaining > INITIAL_TIME - TIME_BONUS && timeRemaining > prevTimeRemaining) {
+        timerBar.classList.remove('timer-flash');
+        void timerBar.offsetWidth;
+        timerBar.classList.add('timer-flash');
+    }
+    
     if (timeRemaining <= 0) {
         clearInterval(timerInterval);
-        if (board && board.length > 0) { // Check if board exists
+        if (board && board.length > 0) {
             alert('Время вышло!');
             if (confirm('Хотите сыграть ещё?')) {
                 resetGame();
             }
         }
     }
-    timeRemaining--;
+    
+    prevTimeRemaining = timeRemaining;
 }
 
 // Add reset game function
@@ -504,14 +545,14 @@ async function initGame() {
         initializeBoard();
         drawBoard();
 
-        // Start timer only after everything is initialized
+        // Start timer with more frequent updates
         timerInterval = setInterval(() => {
-            if (board && board.length > 0) { // Check if board exists
+            if (board && board.length > 0) {
                 updateTimer();
             } else {
-                clearInterval(timerInterval); // Stop timer if board isn't ready
+                clearInterval(timerInterval);
             }
-        }, 1000);
+        }, 1000/60); // Update ~60 times per second
 
     } catch (error) {
         console.error('Error initializing game:', error);
@@ -543,7 +584,7 @@ window.onload = function() {
 
 function createConfetti() {
     const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
-    const confettiCount = 200;
+    const confettiCount = 450;
     
     for (let i = 0; i < confettiCount; i++) {
         const confetti = document.createElement('div');
@@ -573,4 +614,23 @@ function createConfetti() {
         // Remove confetti after animation
         setTimeout(() => confetti.remove(), (duration + delay) * 1000);
     }
+}
+
+let prevTimeRemaining = INITIAL_TIME;
+
+function showFloatingScore(points) {
+    const scoreContainer = document.getElementById('score-container');
+    const floatingText = document.createElement('div');
+    floatingText.className = 'floating-score';
+    floatingText.textContent = `+${points}`;
+    
+    // Position the floating text next to the score container
+    const rect = scoreContainer.getBoundingClientRect();
+    floatingText.style.left = `${rect.right + 10}px`;
+    floatingText.style.top = `${rect.top}px`;
+    
+    document.body.appendChild(floatingText);
+    
+    // Remove the element after animation completes
+    setTimeout(() => floatingText.remove(), 1500);
 }

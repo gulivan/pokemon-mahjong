@@ -695,7 +695,7 @@ function initializeControlPanel() {
     
     // Restore defaults button
     defaultsBtn.addEventListener('click', () => {
-        if (confirm('Are you sure you want to restore default settings?')) {
+        if (confirm('Вы уверены, что хотите восстановить настройки по умолчанию?')) {
             restoreDefaultSettings();
         }
     });

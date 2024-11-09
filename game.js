@@ -7,6 +7,8 @@ const COLS = 14;
 const CARD_WIDTH = 50;  
 const CARD_HEIGHT = 50;
 const CHARACTER_COUNT = 26;
+const INITIAL_TIME = 90;
+const TIME_BONUS = 6;
 
 let board = [];
 let score = 0;
@@ -30,8 +32,7 @@ const DIFFICULTY = {
 
 const imageCache = new Map();
 
-const INITIAL_TIME = 90;
-const TIME_BONUS = 6;
+
 let timeRemaining = INITIAL_TIME;
 let timerInterval;
 
@@ -373,8 +374,8 @@ async function handleClick(event) {
     // Handle touch events
     if (event.type === 'touchstart' || event.type === 'touchend') {
         const touch = event.changedTouches[0];
-        clientX = touch.clientX - window.pageXOffset;
-        clientY = touch.clientY - window.pageYOffset;
+        clientX = touch.clientX - window.scrollX;
+        clientY = touch.clientY - window.scrollY;
     } else {
         clientX = event.clientX;
         clientY = event.clientY;
@@ -408,17 +409,47 @@ async function handleClick(event) {
                     if (path) {
                         selectedCards.push({x, y});
                         drawBoard();
-                        drawPath(path);  // Draw path immediately
+                        drawPath(path);
                         
-                        // Wait before clearing the cards
-                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        setTimeout(async () => {
+                            board[first.y][first.x] = null;
+                            board[y][x] = null;
+
+                            // Update time and trigger flash
+                            const timerBar = document.getElementById('timer-bar');
+                            timeRemaining += TIME_BONUS;
+                            
+                            if (timerBar) {
+                                // Remove existing class to ensure animation can replay
+                                timerBar.classList.remove('timer-flash');
+                                // Force a reflow
+                                void timerBar.offsetWidth;
+                                // Add class back
+                                timerBar.classList.add('timer-flash');
+                            }
+
+                            score += 10;
+                            if (timeRemaining > INITIAL_TIME) {
+                                score += Math.floor(timeRemaining - INITIAL_TIME);
+                                timeRemaining = INITIAL_TIME + 1;
+                            }
+                            scoreElement.textContent = score;
+                            drawBoard();
+
+                            // Check for win condition
+                            if (checkGameComplete()) {
+                                clearInterval(timerInterval);
+                                createConfetti();
+                                setTimeout(() => {
+                                    alert(`Поздравляем! Вы победили!\nВаш счёт: ${score} очков`);
+                                    if (confirm('Хотите сыграть ещё раз?')) {
+                                        resetGame();
+                                    }
+                                }, 500); // Small delay to ensure confetti starts first
+                            }
+                        }, 1000);
                         
-                        board[first.y][first.x] = null;
-                        board[y][x] = null;
-                        score += 10;
-                        scoreElement.textContent = score;
                         selectedCards = [];
-                        drawBoard();
                     } else {
                         selectedCards = [];
                         drawBoard();
@@ -450,19 +481,31 @@ function updateTimer() {
     const timerBar = document.getElementById('timer-bar');
     if (!timerBar) return;
 
+    // Decrease time more smoothly (adjust time by frame)
+    timeRemaining -= 1/60; // Decrease by 1 second spread across 60 frames
+
+    // Update progress bar immediately
     const percentage = (timeRemaining / INITIAL_TIME) * 100;
     timerBar.style.width = `${percentage}%`;
     
+    // Flash only when time is added
+    if (timeRemaining > INITIAL_TIME - TIME_BONUS && timeRemaining > prevTimeRemaining) {
+        timerBar.classList.remove('timer-flash');
+        void timerBar.offsetWidth;
+        timerBar.classList.add('timer-flash');
+    }
+    
     if (timeRemaining <= 0) {
         clearInterval(timerInterval);
-        if (board && board.length > 0) { // Check if board exists
+        if (board && board.length > 0) {
             alert('Время вышло!');
             if (confirm('Хотите сыграть ещё?')) {
                 resetGame();
             }
         }
     }
-    timeRemaining--;
+    
+    prevTimeRemaining = timeRemaining;
 }
 
 // Add reset game function
@@ -495,14 +538,14 @@ async function initGame() {
         initializeBoard();
         drawBoard();
 
-        // Start timer only after everything is initialized
+        // Start timer with more frequent updates
         timerInterval = setInterval(() => {
-            if (board && board.length > 0) { // Check if board exists
+            if (board && board.length > 0) {
                 updateTimer();
             } else {
-                clearInterval(timerInterval); // Stop timer if board isn't ready
+                clearInterval(timerInterval);
             }
-        }, 1000);
+        }, 1000/60); // Update ~60 times per second
 
     } catch (error) {
         console.error('Error initializing game:', error);
@@ -534,7 +577,7 @@ window.onload = function() {
 
 function createConfetti() {
     const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
-    const confettiCount = 200;
+    const confettiCount = 450;
     
     for (let i = 0; i < confettiCount; i++) {
         const confetti = document.createElement('div');
@@ -565,3 +608,5 @@ function createConfetti() {
         setTimeout(() => confetti.remove(), (duration + delay) * 1000);
     }
 }
+
+let prevTimeRemaining = INITIAL_TIME;

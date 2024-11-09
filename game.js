@@ -2,13 +2,16 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreElement = document.getElementById('score');
 
-const ROWS = 8;
-const COLS = 14;
 const CARD_WIDTH = 50;  
 const CARD_HEIGHT = 50;
 const CHARACTER_COUNT = 26;
-const INITIAL_TIME = 90;
-const TIME_BONUS = 6;
+
+// Game configuration
+let INITIAL_TIME = 90;
+let TIME_BONUS = 6; 
+let ROWS = 8;
+let COLS = 14;
+
 
 let board = [];
 let score = 0;
@@ -517,11 +520,37 @@ function updateTimer() {
 
 // Add reset game function
 function resetGame() {
-    score = 0;
-    scoreElement.textContent = score;
+    // Clear existing intervals
+    if (timerInterval) clearInterval(timerInterval);
+    
+    // Reset game state
     timeRemaining = INITIAL_TIME;
-    clearInterval(timerInterval);
-    initGame();
+    score = 0;
+    selectedCards = [];
+    board = [];
+    
+    // Update score display
+    const scoreElement = document.getElementById('score');
+    if (scoreElement) scoreElement.textContent = '0';
+    
+    // Initialize board with new dimensions
+    initializeBoard();
+    
+    // Reset and start timer
+    const timerBar = document.getElementById('timer-bar');
+    if (timerBar) {
+        timerBar.style.width = '100%';
+    }
+    
+    timerInterval = setInterval(() => {
+        if (board && board.length > 0) {
+            updateTimer();
+        } else {
+            clearInterval(timerInterval);
+        }
+    }, 1000/60);
+    
+    drawBoard();
 }
 
 // Modify initGame function to return a promise
@@ -633,4 +662,156 @@ function showFloatingScore(points) {
     
     // Remove the element after animation completes
     setTimeout(() => floatingText.remove(), 1500);
+}
+
+
+
+// Control panel functionality
+function initializeControlPanel() {
+    const panel = document.getElementById('control-panel');
+    const toggleBtn = document.getElementById('toggle-panel');
+    const restartBtn = document.getElementById('restart-game');
+    const defaultsBtn = document.getElementById('restore-defaults');
+    
+    // Load saved settings first
+    loadSettings();
+    
+    // Initialize input values with loaded settings
+    document.getElementById('initial-time').value = INITIAL_TIME;
+    document.getElementById('time-bonus').value = TIME_BONUS;
+    document.getElementById('rows').value = ROWS;
+    document.getElementById('cols').value = COLS;
+    
+    // Toggle panel
+    toggleBtn.addEventListener('click', () => {
+        panel.classList.toggle('collapsed');
+    });
+    
+    // Restore defaults button
+    defaultsBtn.addEventListener('click', () => {
+        if (confirm('Вы уверены, что хотите восстановить настройки по умолчанию?')) {
+            restoreDefaultSettings();
+        }
+    });
+    
+    // Update settings and restart game
+    restartBtn.addEventListener('click', () => {
+        INITIAL_TIME = parseInt(document.getElementById('initial-time').value);
+        TIME_BONUS = parseInt(document.getElementById('time-bonus').value);
+        ROWS = parseInt(document.getElementById('rows').value);
+        COLS = parseInt(document.getElementById('cols').value);
+        
+        // Ensure even number of cells
+        if ((ROWS * COLS) % 2 !== 0) {
+            COLS += 1;
+        }
+        
+        // Save the new settings
+        saveSettings();
+        
+        // Update canvas size
+        canvas.width = COLS * CARD_WIDTH * PIXEL_RATIO;
+        canvas.height = ROWS * CARD_HEIGHT * PIXEL_RATIO;
+        canvas.style.width = COLS * CARD_WIDTH + 'px';
+        canvas.style.height = ROWS * CARD_HEIGHT + 'px';
+        ctx.scale(PIXEL_RATIO, PIXEL_RATIO);
+        
+        resetGame();
+        panel.classList.add('collapsed');
+    });
+    
+    // Input validation
+    const inputs = panel.getElementsByTagName('input');
+    for (let input of inputs) {
+        input.addEventListener('change', function() {
+            const val = parseInt(this.value);
+            const min = parseInt(this.min);
+            const max = parseInt(this.max);
+            if (val < min) this.value = min;
+            if (val > max) this.value = max;
+        });
+    }
+}
+
+// Call this at the end of your window.onload or where you initialize the game
+window.addEventListener('load', () => {
+    initializeControlPanel();
+    resetGame();
+});
+
+// Add this near the top of your game.js with other initialization code
+document.getElementById('toggle-panel').addEventListener('click', () => {
+    document.getElementById('control-panel').classList.toggle('collapsed');
+});
+
+// Add event listeners for the control inputs
+document.getElementById('initial-time').value = INITIAL_TIME;
+document.getElementById('time-bonus').value = TIME_BONUS;
+document.getElementById('rows').value = ROWS;
+document.getElementById('cols').value = COLS;
+
+document.getElementById('restart-game').addEventListener('click', resetGame);
+
+// Add input change handlers
+document.getElementById('initial-time').addEventListener('change', (e) => {
+    INITIAL_TIME = parseInt(e.target.value);
+});
+
+document.getElementById('time-bonus').addEventListener('change', (e) => {
+    TIME_BONUS = parseInt(e.target.value);
+});
+
+document.getElementById('rows').addEventListener('change', (e) => {
+    ROWS = parseInt(e.target.value);
+});
+
+document.getElementById('cols').addEventListener('change', (e) => {
+    COLS = parseInt(e.target.value);
+});
+
+// Add these functions to handle saving and loading settings
+function saveSettings() {
+    const settings = {
+        initialTime: INITIAL_TIME,
+        timeBonus: TIME_BONUS,
+        rows: ROWS,
+        cols: COLS
+    };
+    localStorage.setItem('gameSettings', JSON.stringify(settings));
+}
+
+function loadSettings() {
+    const savedSettings = localStorage.getItem('gameSettings');
+    if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        INITIAL_TIME = settings.initialTime;
+        TIME_BONUS = settings.timeBonus;
+        ROWS = settings.rows;
+        COLS = settings.cols;
+    }
+}
+
+// Add default settings constants
+const DEFAULT_SETTINGS = {
+    initialTime: 90,
+    timeBonus: 6,
+    rows: 8,
+    cols: 14
+};
+
+function restoreDefaultSettings() {
+    // Update global variables
+    INITIAL_TIME = DEFAULT_SETTINGS.initialTime;
+    TIME_BONUS = DEFAULT_SETTINGS.timeBonus;
+    ROWS = DEFAULT_SETTINGS.rows;
+    COLS = DEFAULT_SETTINGS.cols;
+    
+    // Update input values
+    document.getElementById('initial-time').value = INITIAL_TIME;
+    document.getElementById('time-bonus').value = TIME_BONUS;
+    document.getElementById('rows').value = ROWS;
+    document.getElementById('cols').value = COLS;
+    
+    // Clear localStorage
+    localStorage.removeItem('gameSettings');
 }

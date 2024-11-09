@@ -11,11 +11,44 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="timer">
-        <div id="timer-bar"></div>
+    <!-- Control panel first -->
+    <div id="control-panel" class="control-panel collapsed">
+        <button id="toggle-panel" class="toggle-panel">⚙️</button>
+        <div class="panel-content">
+            <div class="control-group">
+                <label for="initial-time">Начальное и макс. время (сек)</label>
+                <input type="number" id="initial-time" min="30" max="1200" value="90">
+            </div>
+            <div class="control-group">
+                <label for="time-bonus">Бонус времени (сек)</label>
+                <input type="number" id="time-bonus" min="0" max="30" value="6">
+            </div>
+            <div class="control-group">
+                <label for="rows">Строк</label>
+                <input type="number" id="rows" min="4" max="12" value="8">
+            </div>
+            <div class="control-group">
+                <label for="cols">Колонок</label>
+                <input type="number" id="cols" min="4" max="16" value="14">
+            </div>
+            <div class="button-group">
+                <button id="restore-defaults" class="secondary-button">Сбросить настройки</button>
+            </div>
+            <div class="button-group">
+                <button id="restart-game" class="restart-button">Сохранить и начать заново</button>
+            </div>
+        </div>
     </div>
-    <canvas id="gameCanvas" width="700" height="400"></canvas>
-    <div id="score-container">Баллы: <span id="score">0</span></div>
+
+    <!-- Wrap the rest of the content in a container -->
+    <div class="game-container">
+        <div id="timer">
+            <div id="timer-bar"></div>
+        </div>
+        <canvas id="gameCanvas" width="700" height="400"></canvas>
+        <div id="score-container">Баллы: <span id="score">0</span></div>
+    </div>
+
     <script src="game.js"></script>
 </body>
 </html>

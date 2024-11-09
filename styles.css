@@ -191,7 +191,6 @@ canvas {
         padding: 0;
         overflow: auto;
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
         position: fixed;
@@ -216,6 +215,12 @@ canvas {
         position: relative;
         left: auto;
         transform: none;
+    }
+
+    .game-container {
+        transform: none;
+        transform-origin: initial;
+        min-width: initial;
     }
 }
 

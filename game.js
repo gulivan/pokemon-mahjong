@@ -42,22 +42,6 @@ let timerInterval;
 // Get the device pixel ratio and canvas context
 const PIXEL_RATIO = window.devicePixelRatio || 1;
 
-
-// Set the canvas size to match the game board dimensions with pixel ratio
-canvas.width = COLS * CARD_WIDTH * PIXEL_RATIO;   // e.g., 700 * 2 = 1400px on Retina
-canvas.height = ROWS * CARD_HEIGHT * PIXEL_RATIO; // e.g., 400 * 2 = 800px on Retina
-
-// Set display size (CSS pixels)
-canvas.style.width = COLS * CARD_WIDTH + 'px';    // 700px
-canvas.style.height = ROWS * CARD_HEIGHT + 'px';  // 400px
-
-// Scale the context to handle the pixel ratio
-ctx.scale(PIXEL_RATIO, PIXEL_RATIO);
-
-// Enable high-quality image rendering
-ctx.imageSmoothingEnabled = true;
-ctx.imageSmoothingQuality = 'high';
-
 function generateRandomGradient() {
     // Function to generate a random color with low opacity
     const randomColor = () => {
@@ -555,6 +539,9 @@ function resetGame() {
     const scoreElement = document.getElementById('score');
     if (scoreElement) scoreElement.textContent = '0';
     
+    // Initialize canvas dimensions
+    initializeCanvas();
+    
     // Initialize board with new dimensions
     initializeBoard();
     
@@ -589,6 +576,9 @@ async function initGame() {
         if (scoreElement) {
             scoreElement.textContent = score;
         }
+
+        // Initialize canvas dimensions
+        initializeCanvas();
 
         // Initialize game components
         await generateRandomGradient();
@@ -970,3 +960,21 @@ function checkWinCondition() {
 document.getElementById('difficulty').addEventListener('change', (e) => {
     saveSettings();
 });
+
+function initializeCanvas() {
+    // Set the canvas size to match the game board dimensions with pixel ratio
+    canvas.width = COLS * CARD_WIDTH * PIXEL_RATIO;
+    canvas.height = ROWS * CARD_HEIGHT * PIXEL_RATIO;
+
+    // Set display size (CSS pixels)
+    canvas.style.width = COLS * CARD_WIDTH + 'px';
+    canvas.style.height = ROWS * CARD_HEIGHT + 'px';
+
+    // Scale the context to handle the pixel ratio
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+    ctx.scale(PIXEL_RATIO, PIXEL_RATIO);
+
+    // Enable high-quality image rendering
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+}

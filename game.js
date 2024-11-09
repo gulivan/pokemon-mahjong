@@ -606,6 +606,7 @@ function checkGameComplete() {
 
 // Add window.onload to ensure DOM is ready
 window.onload = function() {
+    initializeControlPanel();
     initGame().catch(error => {
         console.error('Failed to initialize game:', error);
     });
@@ -670,8 +671,18 @@ function showFloatingScore(points) {
 function initializeControlPanel() {
     const panel = document.getElementById('control-panel');
     const toggleBtn = document.getElementById('toggle-panel');
+    const panelContent = panel.querySelector('.panel-content');
     const restartBtn = document.getElementById('restart-game');
     const defaultsBtn = document.getElementById('restore-defaults');
+    
+    // Ensure panel starts collapsed
+    panelContent.style.display = 'none';
+    
+    // Toggle panel
+    toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        panelContent.style.display = panelContent.style.display === 'none' ? 'block' : 'none';
+    });
     
     // Load saved settings first
     loadSettings();
@@ -682,14 +693,9 @@ function initializeControlPanel() {
     document.getElementById('rows').value = ROWS;
     document.getElementById('cols').value = COLS;
     
-    // Toggle panel
-    toggleBtn.addEventListener('click', () => {
-        panel.classList.toggle('collapsed');
-    });
-    
     // Restore defaults button
     defaultsBtn.addEventListener('click', () => {
-        if (confirm('Вы уверены, что хотите восстановить настройки по умолчанию?')) {
+        if (confirm('Are you sure you want to restore default settings?')) {
             restoreDefaultSettings();
         }
     });
@@ -717,31 +723,20 @@ function initializeControlPanel() {
         ctx.scale(PIXEL_RATIO, PIXEL_RATIO);
         
         resetGame();
-        panel.classList.add('collapsed');
+        panelContent.style.display = 'none';
     });
-    
-    // Input validation
-    const inputs = panel.getElementsByTagName('input');
-    for (let input of inputs) {
-        input.addEventListener('change', function() {
-            const val = parseInt(this.value);
-            const min = parseInt(this.min);
-            const max = parseInt(this.max);
-            if (val < min) this.value = min;
-            if (val > max) this.value = max;
-        });
-    }
 }
 
 // Call this at the end of your window.onload or where you initialize the game
-window.addEventListener('load', () => {
+window.addEventListener('load', function() {
     initializeControlPanel();
     resetGame();
 });
 
 // Add this near the top of your game.js with other initialization code
 document.getElementById('toggle-panel').addEventListener('click', () => {
-    document.getElementById('control-panel').classList.toggle('collapsed');
+    const panelContent = document.getElementById('control-panel').querySelector('.panel-content');
+    panelContent.style.display = panelContent.style.display === 'none' ? 'block' : 'none';
 });
 
 // Add event listeners for the control inputs

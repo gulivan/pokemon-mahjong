@@ -25,6 +25,15 @@ body {
     z-index: 9999;
 }
 
+.panel-content {
+    padding: 20px;
+    padding-top: 40px;
+}
+/* 
+.control-panel.collapsed .panel-content {
+    display: none !important;
+} */
+
 canvas {
     border: 1px solid black;
     background: white;
@@ -137,13 +146,7 @@ canvas {
     cursor: pointer;
     font-size: 24px;
     border-radius: 8px;
-}
-
-.panel-content {
-    padding: 20px;
-    background: white;
-    max-height: 80vh;
-    overflow-y: auto;
+    z-index: 1;
 }
 
 .control-group {

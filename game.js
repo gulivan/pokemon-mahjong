@@ -2,13 +2,16 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreElement = document.getElementById('score');
 
-const ROWS = 8;
-const COLS = 14;
 const CARD_WIDTH = 50;  
 const CARD_HEIGHT = 50;
 const CHARACTER_COUNT = 26;
-const INITIAL_TIME = 90;
-const TIME_BONUS = 6;
+
+// Game configuration
+let INITIAL_TIME = 90;
+let TIME_BONUS = 6; 
+let ROWS = 8;
+let COLS = 14;
+
 
 let board = [];
 let score = 0;
@@ -38,21 +41,6 @@ let timerInterval;
 
 // Get the device pixel ratio and canvas context
 const PIXEL_RATIO = window.devicePixelRatio || 1;
-
-// Set the canvas size to match the game board dimensions with pixel ratio
-canvas.width = COLS * CARD_WIDTH * PIXEL_RATIO;   // e.g., 700 * 2 = 1400px on Retina
-canvas.height = ROWS * CARD_HEIGHT * PIXEL_RATIO; // e.g., 400 * 2 = 800px on Retina
-
-// Set display size (CSS pixels)
-canvas.style.width = COLS * CARD_WIDTH + 'px';    // 700px
-canvas.style.height = ROWS * CARD_HEIGHT + 'px';  // 400px
-
-// Scale the context to handle the pixel ratio
-ctx.scale(PIXEL_RATIO, PIXEL_RATIO);
-
-// Enable high-quality image rendering
-ctx.imageSmoothingEnabled = true;
-ctx.imageSmoothingQuality = 'high';
 
 function generateRandomGradient() {
     // Function to generate a random color with low opacity
@@ -118,9 +106,13 @@ function initializeBoard() {
     let cardPairs = [];
     let currentIndex = 0;
     
+    // Get current difficulty setting
+    const difficulty = document.getElementById('difficulty').value;
+    const availableCharacters = characters.slice(0, DIFFICULTY[difficulty]);
+    
     // Keep adding pairs until we fill the board
     while (cardPairs.length < totalCells) {
-        const char = characters[currentIndex % characters.length];
+        const char = availableCharacters[currentIndex % availableCharacters.length];
         // Add pairs (2, 4, 6, or 8 times randomly)
         const pairCount = Math.floor(Math.random() * 4 + 1) * 2; // Random even number between 2 and 8
         
@@ -415,6 +407,9 @@ async function handleClick(event) {
                             board[first.y][first.x] = null;
                             board[y][x] = null;
 
+                            // Apply level-specific behavior
+                            handlePostMatchBehavior();
+
                             // Update time and trigger flash
                             const timerBar = document.getElementById('timer-bar');
                             timeRemaining += TIME_BONUS;
@@ -448,9 +443,21 @@ async function handleClick(event) {
                                 clearInterval(timerInterval);
                                 createConfetti();
                                 setTimeout(() => {
-                                    alert(`Поздравляем! Вы победили!\nВаш счёт: ${score} очков`);
-                                    if (confirm('Хотите сыграть ещё раз?')) {
-                                        resetGame();
+                                    const isLastLevel = currentLevel === Object.keys(LEVELS).length;
+                                    const message = isLastLevel 
+                                        ? `Поздравляем! Вы прошли все уровни!\nВаш счёт: ${score} очков` 
+                                        : `Поздравляем! Уровень ${currentLevel} пройден!\nВаш счёт: ${score} очков\nГотовы к уровню ${currentLevel + 1}?`;
+                                    
+                                    if (isLastLevel) {
+                                        if (confirm('Хотите начать сначала?')) {
+                                            currentLevel = 1;
+                                            resetGame();
+                                        }
+                                    } else {
+                                        if (confirm('Перейти к следующему уровню?')) {
+                                            advanceToNextLevel();
+                                            resetGame();
+                                        }
                                     }
                                 }, 500); // Small delay to ensure confetti starts first
                             }
@@ -517,11 +524,41 @@ function updateTimer() {
 
 // Add reset game function
 function resetGame() {
-    score = 0;
-    scoreElement.textContent = score;
+    // Clear existing intervals
+    if (timerInterval) clearInterval(timerInterval);
+    
+    // Reset game state
     timeRemaining = INITIAL_TIME;
-    clearInterval(timerInterval);
-    initGame();
+    score = 0;
+    selectedCards = [];
+    board = [];
+    
+    // Update score display
+    const scoreElement = document.getElementById('score');
+    if (scoreElement) scoreElement.textContent = '0';
+    
+    // Initialize canvas dimensions
+    initializeCanvas();
+    
+    // Initialize board with new dimensions
+    initializeBoard();
+    
+    // Reset and start timer
+    const timerBar = document.getElementById('timer-bar');
+    if (timerBar) {
+        timerBar.style.width = '100%';
+    }
+    
+    timerInterval = setInterval(() => {
+        if (board && board.length > 0) {
+            updateTimer();
+        } else {
+            clearInterval(timerInterval);
+        }
+    }, 1000/60);
+    
+    drawBoard();
+    updateLevelIndicator();
 }
 
 // Modify initGame function to return a promise
@@ -538,6 +575,9 @@ async function initGame() {
         if (scoreElement) {
             scoreElement.textContent = score;
         }
+
+        // Initialize canvas dimensions
+        initializeCanvas();
 
         // Initialize game components
         await generateRandomGradient();
@@ -577,6 +617,7 @@ function checkGameComplete() {
 
 // Add window.onload to ensure DOM is ready
 window.onload = function() {
+    initializeControlPanel();
     initGame().catch(error => {
         console.error('Failed to initialize game:', error);
     });
@@ -634,3 +675,321 @@ function showFloatingScore(points) {
     // Remove the element after animation completes
     setTimeout(() => floatingText.remove(), 1500);
 }
+
+
+
+// Control panel functionality
+function initializeControlPanel() {
+    const panel = document.getElementById('control-panel');
+    const toggleBtn = document.getElementById('toggle-panel');
+    const panelContent = panel.querySelector('.panel-content');
+    const restartBtn = document.getElementById('restart-game');
+    const defaultsBtn = document.getElementById('restore-defaults');
+    
+    // Ensure panel starts collapsed
+    panelContent.style.display = 'none';
+    
+    // Toggle panel
+    toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        panelContent.style.display = panelContent.style.display === 'none' ? 'block' : 'none';
+    });
+    
+    // Load saved settings first
+    loadSettings();
+    
+    // Initialize input values with loaded settings
+    document.getElementById('initial-time').value = INITIAL_TIME;
+    document.getElementById('time-bonus').value = TIME_BONUS;
+    document.getElementById('rows').value = ROWS;
+    document.getElementById('cols').value = COLS;
+    
+    // Restore defaults button
+    function handleDefaultsClick(e) {
+        // Prevent double execution
+        if (e.defaultsPrevented) return;
+        e.defaultsPrevented = true;
+        
+        console.log('Default button clicked'); // Debug log
+        if (confirm('Вы уверены, что хотите восстановить настройки по умолчанию?')) {
+            restoreDefaultSettings();
+        }
+        
+        // Reset the flag after a short delay
+        setTimeout(() => {
+            e.defaultsPrevented = false;
+        }, 100);
+    }
+    
+    defaultsBtn.removeEventListener('click', handleDefaultsClick);
+    defaultsBtn.addEventListener('click', handleDefaultsClick);
+    
+    // Update settings and restart game
+    restartBtn.addEventListener('click', () => {
+        INITIAL_TIME = parseInt(document.getElementById('initial-time').value);
+        TIME_BONUS = parseInt(document.getElementById('time-bonus').value);
+        ROWS = parseInt(document.getElementById('rows').value);
+        COLS = parseInt(document.getElementById('cols').value);
+        
+        // Ensure even number of cells
+        if ((ROWS * COLS) % 2 !== 0) {
+            COLS += 1;
+        }
+        
+        // Save the new settings
+        saveSettings();
+        
+        // Update canvas size
+        canvas.width = COLS * CARD_WIDTH * PIXEL_RATIO;
+        canvas.height = ROWS * CARD_HEIGHT * PIXEL_RATIO;
+        canvas.style.width = COLS * CARD_WIDTH + 'px';
+        canvas.style.height = ROWS * CARD_HEIGHT + 'px';
+        ctx.scale(PIXEL_RATIO, PIXEL_RATIO);
+        
+        resetGame();
+        panelContent.style.display = 'none';
+    });
+}
+
+// Call this at the end of your window.onload or where you initialize the game
+window.addEventListener('load', function() {
+    initializeControlPanel();
+    resetGame();
+});
+
+// Add this near the top of your game.js with other initialization code
+document.getElementById('toggle-panel').addEventListener('click', () => {
+    const panelContent = document.getElementById('control-panel').querySelector('.panel-content');
+    panelContent.style.display = panelContent.style.display === 'none' ? 'block' : 'none';
+});
+
+// Add event listeners for the control inputs
+document.getElementById('initial-time').value = INITIAL_TIME;
+document.getElementById('time-bonus').value = TIME_BONUS;
+document.getElementById('rows').value = ROWS;
+document.getElementById('cols').value = COLS;
+
+document.getElementById('restart-game').addEventListener('click', resetGame);
+
+// Add input change handlers
+document.getElementById('initial-time').addEventListener('change', (e) => {
+    INITIAL_TIME = parseInt(e.target.value);
+});
+
+document.getElementById('time-bonus').addEventListener('change', (e) => {
+    TIME_BONUS = parseInt(e.target.value);
+});
+
+document.getElementById('rows').addEventListener('change', (e) => {
+    ROWS = parseInt(e.target.value);
+});
+
+document.getElementById('cols').addEventListener('change', (e) => {
+    COLS = parseInt(e.target.value);
+});
+
+// Add these functions to handle saving and loading settings
+function saveSettings() {
+    const settings = {
+        initialTime: INITIAL_TIME,
+        timeBonus: TIME_BONUS,
+        rows: ROWS,
+        cols: COLS,
+        difficulty: document.getElementById('difficulty').value
+    };
+    localStorage.setItem('gameSettings', JSON.stringify(settings));
+}
+
+function loadSettings() {
+    const savedSettings = localStorage.getItem('gameSettings');
+    if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        INITIAL_TIME = settings.initialTime;
+        TIME_BONUS = settings.timeBonus;
+        ROWS = settings.rows;
+        COLS = settings.cols;
+        document.getElementById('difficulty').value = settings.difficulty || 'MEDIUM';
+    }
+}
+
+// Add default settings constants
+const DEFAULT_SETTINGS = {
+    initialTime: 90,
+    timeBonus: 6,
+    rows: 8,
+    cols: 14,
+    difficulty: 'MEDIUM'  // Add default difficulty
+};
+
+function restoreDefaultSettings() {
+    // Update global variables
+    INITIAL_TIME = DEFAULT_SETTINGS.initialTime;
+    TIME_BONUS = DEFAULT_SETTINGS.timeBonus;
+    ROWS = DEFAULT_SETTINGS.rows;
+    COLS = DEFAULT_SETTINGS.cols;
+    
+    // Update input values
+    document.getElementById('initial-time').value = INITIAL_TIME;
+    document.getElementById('time-bonus').value = TIME_BONUS;
+    document.getElementById('rows').value = ROWS;
+    document.getElementById('cols').value = COLS;
+    document.getElementById('difficulty').value = DEFAULT_SETTINGS.difficulty;
+    
+    // Clear localStorage
+    localStorage.removeItem('gameSettings');
+}
+
+// Update level configuration
+const LEVELS = {
+    1: {
+        name: "Классический",
+        description: "Классический режим",
+        behavior: "default"
+    },
+    2: {
+        name: "Сдвиг вправо",
+        description: "Карты перемещаются вправо после совпадений",
+        behavior: "slideRight"
+    },
+    3: {
+        name: "Сдвиг вниз",
+        description: "Карты перемещаются вниз после совпадений",
+        behavior: "slideDown"
+    },
+    4: {
+        name: "Сдвиг влево",
+        description: "Карты перемещаются влево после совпадений",
+        behavior: "slideLeft"
+    }
+};
+
+let currentLevel = 1;
+
+function updateLevelIndicator() {
+    const levelNumber = document.getElementById('current-level');
+    const levelName = document.getElementById('level-name');
+    if (levelNumber && levelName) {
+        levelNumber.textContent = currentLevel;
+        levelName.textContent = LEVELS[currentLevel].name;
+    }
+}
+
+// Modify the advanceToNextLevel function
+function advanceToNextLevel() {
+    if (currentLevel < Object.keys(LEVELS).length) {
+        currentLevel++;
+        document.getElementById('level').value = currentLevel;
+        updateLevelIndicator();
+        console.log(`Advancing to level ${currentLevel}: ${LEVELS[currentLevel].name}`);
+        saveSettings();
+    }
+}
+
+// Update the handlePostMatchBehavior function to use the current level's behavior
+function handlePostMatchBehavior() {
+    switch (currentLevel) {
+        case 2: // Slide Right
+            for (let row = 0; row < ROWS; row++) {
+                let hasChanges;
+                do {
+                    hasChanges = false;
+                    for (let col = COLS - 2; col >= 0; col--) {
+                        if (board[row][col] !== null && board[row][col + 1] === null) {
+                            board[row][col + 1] = board[row][col];
+                            board[row][col] = null;
+                            hasChanges = true;
+                        }
+                    }
+                } while (hasChanges);
+            }
+            break;
+
+        case 3: // Slide Down
+            let hasChanges;
+            do {
+                hasChanges = false;
+                for (let row = ROWS - 2; row >= 0; row--) {
+                    for (let col = 0; col < COLS; col++) {
+                        if (board[row][col] !== null && board[row + 1][col] === null) {
+                            board[row + 1][col] = board[row][col];
+                            board[row][col] = null;
+                            hasChanges = true;
+                        }
+                    }
+                }
+            } while (hasChanges);
+            break;
+
+        case 4: // Slide Left
+            for (let row = 0; row < ROWS; row++) {
+                let hasChanges;
+                do {
+                    hasChanges = false;
+                    for (let col = 1; col < COLS; col++) {
+                        if (board[row][col] !== null && board[row][col - 1] === null) {
+                            board[row][col - 1] = board[row][col];
+                            board[row][col] = null;
+                            hasChanges = true;
+                        }
+                    }
+                } while (hasChanges);
+            }
+            break;
+
+        default: // Level 1 - Classic (no movement)
+            break;
+    }
+}
+
+// Modify the checkWinCondition function
+function checkWinCondition() {
+    const allMatched = board.every(row => row.every(cell => cell === null));
+    if (allMatched) {
+        clearInterval(timerInterval);
+        const isLastLevel = currentLevel === Object.keys(LEVELS).length;
+        
+        const message = isLastLevel 
+            ? 'Congratulations! You\'ve completed all levels! Want to play again?' 
+            : `Congratulations! Ready for Level ${currentLevel + 1}?`;
+            
+        const confirmAction = confirm(message);
+        
+        if (confirmAction) {
+            if (isLastLevel) {
+                currentLevel = 1; // Reset to first level
+            } else {
+                advanceToNextLevel();
+            }
+            resetGame();
+        }
+    }
+}
+
+document.getElementById('difficulty').addEventListener('change', (e) => {
+    saveSettings();
+});
+
+function initializeCanvas() {
+    // Set the canvas size to match the game board dimensions with pixel ratio
+    canvas.width = COLS * CARD_WIDTH * PIXEL_RATIO;
+    canvas.height = ROWS * CARD_HEIGHT * PIXEL_RATIO;
+
+    // Set display size (CSS pixels)
+    canvas.style.width = COLS * CARD_WIDTH + 'px';
+    canvas.style.height = ROWS * CARD_HEIGHT + 'px';
+
+    // Scale the context to handle the pixel ratio
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+    ctx.scale(PIXEL_RATIO, PIXEL_RATIO);
+
+    // Enable high-quality image rendering
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+}
+
+document.getElementById('level').addEventListener('change', (e) => {
+    currentLevel = parseInt(e.target.value);
+    updateLevelIndicator();
+    saveSettings();
+    resetGame();
+});

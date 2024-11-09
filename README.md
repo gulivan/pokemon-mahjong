@@ -31,9 +31,7 @@ Pokemons are copyrighted so in this port some Midjourney generated animals were 
 
 # Caveats / Future improvements
 
-- Add more difficulty options.
 - Add sound effects & music.
-- Add more levels: move all cards to left/right and so on.
 - Improve the logic of board generation. Currently it could be unsolvable 😅
-- Add path animation
+- Add correct path animation for edges.
 - Improve smoothness of the game.

@@ -42,6 +42,7 @@ let timerInterval;
 // Get the device pixel ratio and canvas context
 const PIXEL_RATIO = window.devicePixelRatio || 1;
 
+
 // Set the canvas size to match the game board dimensions with pixel ratio
 canvas.width = COLS * CARD_WIDTH * PIXEL_RATIO;   // e.g., 700 * 2 = 1400px on Retina
 canvas.height = ROWS * CARD_HEIGHT * PIXEL_RATIO; // e.g., 400 * 2 = 800px on Retina
@@ -418,6 +419,9 @@ async function handleClick(event) {
                             board[first.y][first.x] = null;
                             board[y][x] = null;
 
+                            // Apply level-specific behavior
+                            handlePostMatchBehavior();
+
                             // Update time and trigger flash
                             const timerBar = document.getElementById('timer-bar');
                             timeRemaining += TIME_BONUS;
@@ -451,9 +455,23 @@ async function handleClick(event) {
                                 clearInterval(timerInterval);
                                 createConfetti();
                                 setTimeout(() => {
-                                    alert(`Поздравляем! Вы победили!\nВаш счёт: ${score} очков`);
-                                    if (confirm('Хотите сыграть ещё раз?')) {
-                                        resetGame();
+                                    const isLastLevel = currentLevel === Object.keys(LEVELS).length;
+                                    const message = isLastLevel 
+                                        ? `Поздравляем! Вы прошли все уровни!\nВаш счёт: ${score} очков` 
+                                        : `Поздравляем! Уровень ${currentLevel} пройден!\nВаш счёт: ${score} очков\nГотовы к уровню ${currentLevel + 1}?`;
+                                    
+                                    alert(message);
+                                    
+                                    if (isLastLevel) {
+                                        if (confirm('Хотите начать сначала?')) {
+                                            currentLevel = 1;
+                                            resetGame();
+                                        }
+                                    } else {
+                                        if (confirm('Перейти к следующему уровню?')) {
+                                            advanceToNextLevel();
+                                            resetGame();
+                                        }
                                     }
                                 }, 500); // Small delay to ensure confetti starts first
                             }
@@ -822,4 +840,121 @@ function restoreDefaultSettings() {
     
     // Clear localStorage
     localStorage.removeItem('gameSettings');
+}
+
+// Update level configuration
+const LEVELS = {
+    1: {
+        name: "Classic",
+        description: "Classic matching game",
+        behavior: "default"
+    },
+    2: {
+        name: "Sliding Right",
+        description: "Cards slide right after matches",
+        behavior: "slideRight"
+    },
+    3: {
+        name: "Falling Down",
+        description: "Cards fall down after matches",
+        behavior: "slideDown"
+    },
+    4: {
+        name: "Sliding Left",
+        description: "Cards slide left after matches",
+        behavior: "slideLeft"
+    }
+};
+
+let currentLevel = 1;
+
+// Update the post-match behavior handler
+function handlePostMatchBehavior() {
+    switch (currentLevel) {
+        case 2: // Slide Right
+            for (let row = 0; row < ROWS; row++) {
+                let hasChanges;
+                do {
+                    hasChanges = false;
+                    for (let col = COLS - 2; col >= 0; col--) {
+                        if (board[row][col] !== null && board[row][col + 1] === null) {
+                            board[row][col + 1] = board[row][col];
+                            board[row][col] = null;
+                            hasChanges = true;
+                        }
+                    }
+                } while (hasChanges);
+            }
+            break;
+
+        case 3: // Slide Down
+            let hasChanges;
+            do {
+                hasChanges = false;
+                for (let row = ROWS - 2; row >= 0; row--) {
+                    for (let col = 0; col < COLS; col++) {
+                        if (board[row][col] !== null && board[row + 1][col] === null) {
+                            board[row + 1][col] = board[row][col];
+                            board[row][col] = null;
+                            hasChanges = true;
+                        }
+                    }
+                }
+            } while (hasChanges);
+            break;
+
+        case 4: // Slide Left
+            for (let row = 0; row < ROWS; row++) {
+                let hasChanges;
+                do {
+                    hasChanges = false;
+                    for (let col = 1; col < COLS; col++) {
+                        if (board[row][col] !== null && board[row][col - 1] === null) {
+                            board[row][col - 1] = board[row][col];
+                            board[row][col] = null;
+                            hasChanges = true;
+                        }
+                    }
+                } while (hasChanges);
+            }
+            break;
+
+        default: // Level 1 - Classic (no movement)
+            break;
+    }
+}
+
+// Add this function to handle level progression
+function advanceToNextLevel() {
+    if (currentLevel < Object.keys(LEVELS).length) {
+        currentLevel++;
+        document.getElementById('level-select').value = currentLevel;
+        // Update level description
+        const description = document.querySelector('.control-group small');
+        description.textContent = LEVELS[currentLevel].description;
+    }
+}
+
+// Modify the checkWinCondition function
+function checkWinCondition() {
+    const allMatched = board.every(row => row.every(cell => cell === null));
+    if (allMatched) {
+        clearInterval(timerInterval);
+        const isLastLevel = currentLevel === Object.keys(LEVELS).length;
+        
+        const message = isLastLevel 
+            ? 'Congratulations! You\'ve completed all levels! Want to play again?' 
+            : `Congratulations! Ready for Level ${currentLevel + 1}?`;
+            
+        const confirmAction = confirm(message);
+        
+        if (confirmAction) {
+            if (isLastLevel) {
+                currentLevel = 1; // Reset to first level
+            } else {
+                advanceToNextLevel();
+            }
+            resetGame();
+        }
+    }
 }

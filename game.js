@@ -448,8 +448,6 @@ async function handleClick(event) {
                                         ? `Поздравляем! Вы прошли все уровни!\nВаш счёт: ${score} очков` 
                                         : `Поздравляем! Уровень ${currentLevel} пройден!\nВаш счёт: ${score} очков\nГотовы к уровню ${currentLevel + 1}?`;
                                     
-                                    alert(message);
-                                    
                                     if (isLastLevel) {
                                         if (confirm('Хотите начать сначала?')) {
                                             currentLevel = 1;
@@ -560,6 +558,7 @@ function resetGame() {
     }, 1000/60);
     
     drawBoard();
+    updateLevelIndicator();
 }
 
 // Modify initGame function to return a promise
@@ -866,7 +865,27 @@ const LEVELS = {
 
 let currentLevel = 1;
 
-// Update the post-match behavior handler
+function updateLevelIndicator() {
+    const levelNumber = document.getElementById('current-level');
+    const levelName = document.getElementById('level-name');
+    if (levelNumber && levelName) {
+        levelNumber.textContent = currentLevel;
+        levelName.textContent = LEVELS[currentLevel].name;
+    }
+}
+
+// Modify the advanceToNextLevel function
+function advanceToNextLevel() {
+    if (currentLevel < Object.keys(LEVELS).length) {
+        currentLevel++;
+        document.getElementById('level').value = currentLevel;
+        updateLevelIndicator();
+        console.log(`Advancing to level ${currentLevel}: ${LEVELS[currentLevel].name}`);
+        saveSettings();
+    }
+}
+
+// Update the handlePostMatchBehavior function to use the current level's behavior
 function handlePostMatchBehavior() {
     switch (currentLevel) {
         case 2: // Slide Right
@@ -922,17 +941,6 @@ function handlePostMatchBehavior() {
     }
 }
 
-// Add this function to handle level progression
-function advanceToNextLevel() {
-    if (currentLevel < Object.keys(LEVELS).length) {
-        currentLevel++;
-        document.getElementById('level-select').value = currentLevel;
-        // Update level description
-        const description = document.querySelector('.control-group small');
-        description.textContent = LEVELS[currentLevel].description;
-    }
-}
-
 // Modify the checkWinCondition function
 function checkWinCondition() {
     const allMatched = board.every(row => row.every(cell => cell === null));
@@ -978,3 +986,10 @@ function initializeCanvas() {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 }
+
+document.getElementById('level').addEventListener('change', (e) => {
+    currentLevel = parseInt(e.target.value);
+    updateLevelIndicator();
+    saveSettings();
+    resetGame();
+});

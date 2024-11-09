@@ -11,6 +11,11 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div class="level-indicator">
+        <div class="level-number">Уровень <span id="current-level">1</span></div>
+        <div class="level-name" id="level-name">Классический</div>
+    </div>
+
     <!-- Control panel first -->
     <div id="control-panel" class="control-panel">
         <button id="toggle-panel" class="toggle-panel">⚙️</button>
@@ -38,6 +43,15 @@
                     <option value="MEDIUM">Средний</option>
                     <option value="MEDIUM_PLUS">Сложный</option>
                     <option value="HARD">Эксперт</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="level">Уровень</label>
+                <select id="level">
+                    <option value="1">Классический</option>
+                    <option value="2">Сдвиг вправо</option>
+                    <option value="3">Падение вниз</option>
+                    <option value="4">Сдвиг влево</option>
                 </select>
             </div>
             <div class="button-group">
